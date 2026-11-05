@@ -6,6 +6,7 @@ own settings do. On a controller, where you cannot choose to walk, this is how y
 
 - Scales walk, run and sprint alike. Default 100%: nothing changes.
 - The player only. NPCs and your horse keep their speed.
+- Beneath it, **Default Motion**: Run or Walk, default Run. On Walk you walk with the real walk animation and speed, on a controller too; the Sprint button still sprints. A horse walks too, as it does on a keyboard with run off.
 - No plugin, no scripts. Works with any journal that keeps the game's System page: the game's own, SkyUI, Quest Journal Overhaul,
   Norden UI.
 
@@ -28,6 +29,8 @@ nothing there. 1.6.1170 has no code dump here; it sits between the two.
 slot on the player's own vtable and answers the game's value times the slider. Nothing is written to the actor value, so nothing reaches
 the save. Set through the same read, walking, running and sprinting all scale. A brief nudge of the temporary CarryWeight modifier, up
 and straight back, makes the game recompute the speed at once.
+
+**Default Motion.** The game asks one small function whether to use its run or walk speed, and that function answers "the gamepad is enabled, or the run flag is on". That is why a controller cannot walk. The control map gives the pad no Run or Toggle Always Run key, and does not let them be bound. The mod replaces the function: on Run the same answer; on Walk with the gamepad enabled, no. Without a gamepad the run flag decides as usual, set off by the choice, so Shift and Caps Lock work as they always did. The start of the function is checked before it is replaced (1.5.97 id 41264, AE and 1.7 id 42343), and on a mismatch it is left alone with a line in the log.
 
 **Known limit.** A mod that reads the player's current SpeedMult and writes a value back from it (a script that does `SetAV` from `GetAV`)
 sees the scaled number, and could store it. A mod that only adds or takes away with `ModAV` is unaffected.

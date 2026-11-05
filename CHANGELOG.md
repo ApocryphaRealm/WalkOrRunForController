@@ -11,6 +11,7 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 ## 1.0.0 - 2026-11-04 - untested
 
 ### Added
+- Default Motion, a second row beneath the slider: Run or Walk, default Run (nothing changes). On Walk the player walks with the real walk speed and animation, on a controller too; the Sprint button still sprints. Kept in the INI (bWalkByDefault), never in the save. msp.control op=motion.
 - DevBench tool msp.control: the row's and the speed's live state, and set.
 - Kept in the mod's INI (iSpeedPercent), never in the save: a hook on the player's read of SpeedMult. Holds across saves, new games and restarts.
 - A slider among the game's own Gameplay settings (Journal, System, Settings, Gameplay, beneath Difficulty) that sets the player's movement speed, 25 to 150 percent, one percent per press, default 100. Scales walk, run and sprint alike, the player only.

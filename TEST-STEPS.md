@@ -30,6 +30,26 @@ seconds of the left stick held fully forward. Compare units per second to the 10
 | 16 | **Other journals.** On plain SkyUI (Norden off), and on the game's own journal if the profile allows: repeat steps 3, 4, 8 | The same row in that journal's look, and the same one-percent taps. A setup not reached is reported beside the verdict |
 | 17 | 1.7.104 instance, Line-17: steps 1, 3, 4, 6 | The same |
 
+## Default Motion (order 1)
+
+Tool: `{"op":"motion","value":"walk"}` or `"run"`; state gives `defaultMotion`, `motionRowPresent`, `gaitHookInstalled`, `gaitCalls`, `lastAnswerRun`, `gamepadEnabled`, `runFlag`. Run these after step 14, with the slider back at 100%, Default Motion on Run. Put back `bWalkByDefault=0` afterwards.
+
+| # | Do | EXPECTED |
+|---|---|---|
+| M1 | Read the tool and log; open Gameplay on the pad | `gaitHookInstalled` true; log `motion: hook on PlayerControls's is-running test`. Row **Default Motion** directly beneath the slider, the game's stepper like Difficulty's, showing **Run**. Tool `gamepadEnabled` true |
+| M2 | On Run, full stick 5 s | Same speed and animation as step 2: **nothing changed by the row** |
+| M3 | D-pad right on the row to **Walk**. INI, then close the menus and push the full stick 5 s | INI `bWalkByDefault=1` at once. **The real walk animation and walk speed** with the stick fully forward. Tool `lastAnswerRun` false. Against keyboard walk speed if comparable. Screenshot or describe |
+| M4 | Walking, press the Sprint button | **Sprints**, at step 2's sprint speed. Release: back to walking, no stuck run. Note the result plainly; sprint from walk is read from another mod's comment, not proved |
+| M5 | Walk at 50% on the slider, then 150% | Walk at about half, then one and a half times the walk figure from M3: **the slider scales walk**. Animation noted. Back to 100% |
+| M6 | On Walk: draw a weapon and walk; sneak; swim if there is water | Still walks when drawn, as a keyboard with run off does; sneak and swim unbroken. Report what is seen; no special case was written for these |
+| M7 | Back to the row: Y (Defaults) | Row goes to Run, player runs again. Set it back to Walk |
+| M8 | On Walk, save, quit to desktop, launch, load | INI still 1. Walks straight after the load, row shows Walk |
+| M9 | On Walk, New Game | Walks once in control. Log `game started`. The row shows Walk |
+| M10 | Quit; mod off (as step 15); load M8's save | Clean load; **runs on the pad as normal**. Tick it again |
+| M11 | Keyboard: `bGamepadEnable=0`, Walk set, launch | Walks with no key held. Shift runs while held, Caps Lock toggles, as the game's own. `gamepadEnabled` false. Then Run: runs. Put the setting back |
+| M12 | Riding on Walk | Horse walks with the stick full, as on a keyboard with run off; the Sprint button gallops. Tell the owner: he may want the horse left alone |
+| M13 | Other journals (plain SkyUI, the game's own if allowed): M1 and M3. Line-17 on 1.7.104: M1 to M4 | The same |
+
 **Report also:** `getav speedmult` at 50%. It should read 50 from the console, since it goes through the hook; that it reads 50 is how the
 hook looks from a script and is the known limit in README. Report anything that reads a speed in the list, such as a mod whose script does
 `SetAV` from `GetAV`.

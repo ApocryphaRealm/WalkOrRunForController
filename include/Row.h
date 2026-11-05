@@ -13,6 +13,8 @@ namespace row
 		int index = -1;          // its place in the list
 		int clip = -1;           // the on-screen clip drawing it, -1 when scrolled away
 		int entries = 0;         // rows in the list
+		bool motionPresent = false;  // the Default Motion row is in the list
+		int motionIndex = -1;    // its place
 		double entryValue = -1;  // the value the list holds for it
 		std::string listPath;    // the movie path of the list, empty until found
 	};

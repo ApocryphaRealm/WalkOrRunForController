@@ -6,7 +6,8 @@
 // Journal Overhaul's and Norden UI Black's journals all do this with the same classes, so no movie has to be replaced:
 //
 // - After each journal frame this looks at that list. If it holds "$Difficulty" and not our row, our row goes in beneath Difficulty,
-//   as one more plain object with movieType 0 (the game's own slider, the one Look Sensitivity uses).
+//   as one more plain object with movieType 0 (the game's own slider, the one Look Sensitivity uses). Default Motion goes beneath it,
+//   with movieType 1 (the game's own option stepper, the one Difficulty uses).
 // - A press on the row is handled entirely by the movie's own code: SettingsOptionItem moves its scroll bar one position, and
 //   OptionsList.onValueChange writes the new value into our object. This only reads the object back, once a frame.
 // - That same code also calls the game's OptionChange with the row's ID. The handler (1.5.97 0x8F2EB0, 1.7.104 0x9AB260) switches on
@@ -24,6 +25,7 @@
 
 #include "Row.h"
 
+#include "Motion.h"
 #include "Settings.h"
 #include "Speed.h"
 #include "Strings.h"
@@ -50,6 +52,7 @@ namespace row
 		constexpr std::string_view kDifficulty = "$Difficulty";
 		constexpr const char* kOwnClipMark = "_mspRow";
 		constexpr double kRowId = 0x7FFFFFF0;
+		constexpr double kMotionId = 0x7FFFFFF1;  // the same reasoning as kRowId
 		constexpr int kMaxClips = 64;
 		constexpr double kRowPageSize = 0.7 * (settings::kPercentMax - settings::kPercentMin) / 20.0;  // the same thumb as the 0..20 rows
 
@@ -57,6 +60,7 @@ namespace row
 		State g_state;  // g_lock
 
 		int g_entryPercent = -1;  // main thread: the percent last seen in our object; another value there means the player moved it
+		int g_entryWalk = -1;     // main thread: the same for Default Motion: 0 Run, 1 Walk
 
 		double ValueOf(int a_percent) { return static_cast<double>(a_percent - settings::kPercentMin) / 20.0; }
 
@@ -121,6 +125,42 @@ namespace row
 			logger::info("row: added to the Gameplay list beneath Difficulty (row {}), {}%", a_afterIndex + 1, percent);
 		}
 
+		// Default Motion: the game's own option stepper, the kind Difficulty uses. Value 0 is Run, 1 is Walk.
+		void InsertMotionRow(RE::GFxMovieView* a_movie, RE::GFxValue& a_entries, const std::string& a_listPath, std::uint32_t a_afterIndex)
+		{
+			const bool walk = settings::walkByDefault.load();
+			const std::string text = TR("MSP_Motion", "Default Motion");
+			const std::string run = TR("MSP_Run", "Run");
+			const std::string walking = TR("MSP_Walk", "Walk");
+			RE::GFxValue entry;
+			RE::GFxValue options;
+			a_movie->CreateObject(&entry);
+			a_movie->CreateArray(&options);
+			if (!entry.IsObject() || !options.IsArray())
+			{
+				logger::warn("row: the movie could not make the Default Motion row's objects");
+				return;
+			}
+			options.PushBack(RE::GFxValue(run.c_str()));
+			options.PushBack(RE::GFxValue(walking.c_str()));
+			entry.SetMember("text", RE::GFxValue(text.c_str()));
+			entry.SetMember("movieType", RE::GFxValue(1.0));
+			entry.SetMember("options", options);
+			entry.SetMember("ID", RE::GFxValue(kMotionId));
+			entry.SetMember("value", RE::GFxValue(walk ? 1.0 : 0.0));
+			entry.SetMember("defaultVal", RE::GFxValue(settings::Defaults::walkByDefault ? 1.0 : 0.0));
+
+			std::array<RE::GFxValue, 3> args{ RE::GFxValue(static_cast<double>(a_afterIndex + 1)), RE::GFxValue(0.0), entry };
+			if (!a_entries.Invoke("splice", nullptr, args.data(), args.size()))
+			{
+				logger::debug("row: splice failed; Default Motion goes at the end of the list");
+				a_entries.PushBack(entry);
+			}
+			g_entryWalk = walk ? 1 : 0;
+			a_movie->Invoke((a_listPath + ".InvalidateData").c_str(), nullptr, nullptr, 0);
+			logger::info("row: Default Motion added beneath the slider (row {}), {}", a_afterIndex + 1, walk ? "Walk" : "Run");
+		}
+
 		void SetScrollRange(RE::GFxMovieView* a_movie, const std::string& a_clipPath, double a_pageSize, double a_max)
 		{
 			std::array<RE::GFxValue, 3> args{ RE::GFxValue(a_pageSize), RE::GFxValue(0.0), RE::GFxValue(a_max) };
@@ -128,7 +168,7 @@ namespace row
 		}
 
 		// The on-screen clip that draws our row, -1 when it is scrolled away. Gives each clip the scroll range of the row it draws now.
-		int UpdateClips(RE::GFxMovieView* a_movie, RE::GFxValue& a_list, const std::string& a_listPath, int a_percent, const std::string& a_text, bool a_textChanged)
+		int UpdateClips(RE::GFxMovieView* a_movie, RE::GFxValue& a_list, const std::string& a_listPath, int a_percent, const std::string& a_text, bool a_textChanged, bool a_motionChanged)
 		{
 			int shown = -1;
 			for (int i = 0; i < kMaxClips; ++i)
@@ -141,6 +181,10 @@ namespace row
 				RE::GFxValue mark;
 				const bool marked = clip.GetMember(kOwnClipMark, &mark) && mark.IsBool() && mark.GetBool();
 				const std::string clipPath = a_listPath + "." + name;
+				if (a_motionChanged && id.IsNumber() && id.GetNumber() == kMotionId)
+				{
+					a_movie->SetVariable((clipPath + ".value").c_str(), RE::GFxValue(settings::walkByDefault.load() ? 1.0 : 0.0));
+				}
 				if (ours)
 				{
 					shown = i;
@@ -207,7 +251,9 @@ namespace row
 			const auto count = entries.GetArraySize();
 			std::int64_t rowIndex = -1;
 			std::int64_t difficulty = -1;
+			std::int64_t motionIndex = -1;
 			RE::GFxValue rowEntry;
+			RE::GFxValue motionEntry;
 			for (std::uint32_t i = 0; i < count; ++i)
 			{
 				RE::GFxValue entry;
@@ -217,7 +263,13 @@ namespace row
 				{
 					rowIndex = i;
 					rowEntry = entry;
-					break;
+					continue;
+				}
+				if (EntryMember(entry, "ID", member) && member.IsNumber() && member.GetNumber() == kMotionId)
+				{
+					motionIndex = i;
+					motionEntry = entry;
+					continue;
 				}
 				if (EntryMember(entry, "text", member) && member.IsString() && member.GetString() && kDifficulty == member.GetString())
 				{
@@ -234,11 +286,19 @@ namespace row
 				return;
 			}
 
+			if (rowIndex >= 0 && motionIndex < 0)
+			{
+				InsertMotionRow(a_movie, entries, listPath, static_cast<std::uint32_t>(rowIndex));
+				state.entries = static_cast<int>(entries.GetArraySize());
+				Publish(std::move(state));
+				return;
+			}
+
 			state.entries = static_cast<int>(count);
 			if (rowIndex < 0)
 			{
 				// Not the Gameplay list (Display, Audio): leave it alone, and hand any clip we marked back.
-				UpdateClips(a_movie, list, listPath, settings::speedPercent.load(), {}, false);
+				UpdateClips(a_movie, list, listPath, settings::speedPercent.load(), {}, false, false);
 				Publish(std::move(state));
 				return;
 			}
@@ -264,9 +324,29 @@ namespace row
 			const std::string text = RowText(percent);
 			if (changed) { rowEntry.SetMember("text", RE::GFxValue(text.c_str())); }
 
+			// Default Motion, the same two ways round
+			RE::GFxValue motionValue;
+			bool motionChanged = false;
+			int entryWalk = settings::walkByDefault.load() ? 1 : 0;
+			if (EntryMember(motionEntry, "value", motionValue) && motionValue.IsNumber()) { entryWalk = motionValue.GetNumber() >= 0.5 ? 1 : 0; }
+			if (entryWalk != g_entryWalk)
+			{
+				g_entryWalk = entryWalk;
+				motion::SetWalk(entryWalk == 1);
+			}
+			const int walk = settings::walkByDefault.load() ? 1 : 0;
+			if (walk != entryWalk)
+			{
+				motionEntry.SetMember("value", RE::GFxValue(static_cast<double>(walk)));
+				g_entryWalk = walk;
+				motionChanged = true;
+			}
+
+			state.motionPresent = true;
+			state.motionIndex = static_cast<int>(motionIndex);
 			state.present = true;
 			state.index = static_cast<int>(rowIndex);
-			state.clip = UpdateClips(a_movie, list, listPath, percent, text, changed);
+			state.clip = UpdateClips(a_movie, list, listPath, percent, text, changed, motionChanged);
 			state.entryValue = ValueOf(percent);
 			Publish(std::move(state));
 		}

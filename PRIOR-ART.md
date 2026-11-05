@@ -30,6 +30,15 @@ okwinza/skyrim-walk-speed-tuner.
 | Fixed-speed esp mods (NK's Faster Walk Speeds, Walk Faster, Simply Better Movement Speeds, I am not a slow walker, Sprint Speed Multiplier and others) | Nexus 46688, 43329, 130, 161784, 133904 | Change movement records or game settings | One fixed speed, and they apply to NPCs too or are plugins; no slider |
 | Sprint Sneak Movement Speed Fix | Nexus 86631 | Bug fix for wrong speed after drawing or shouting | Other purpose, but its bug is a reminder that the engine holds on to a computed speed |
 
+## Controller Default Walking, read further 2026-11-04 (order 1)
+
+Read: its description (API), its file list and its Posts tab (Claude in Chrome). **Its archive was not read**: downloading a file needs the owner's own yes, and only a helper's order was at hand. File 818361, version 3, 1.09 MB, says it holds the source.
+
+- Author MrRip75, version 3, "based on Natural Controller Movement by albatross855356", GPL-3.0-or-later, source in the download. Built and tested for 1.5.97 and SKSE 2.0.20 only, by its own page.
+- Approach, by its page: "directly adjusting controller movement input", walk by default, Sprint once runs, Sprint twice sprints, and full speed while in combat, sneaking, swimming or with a weapon drawn. So it holds the stick down, a state machine around Sprint.
+- Conflicts: its page says compatible with any mod; its Posts tab has several players on 1.6.1170 saying it does nothing ("Still running not walking"), and a reply pointing at other mods that alter controller input.
+- Nothing is copied from it. Ours is a different mechanism, one test in the game's own speed choice (`source/Motion.cpp`), with no states and no stick change, and it does not change what Sprint does. Installed together they would both work on the pad; on Run ours does nothing, so it is the choice to leave on Run.
+
 ## Read for the mechanism
 
 Own reading, 2026-11-04:

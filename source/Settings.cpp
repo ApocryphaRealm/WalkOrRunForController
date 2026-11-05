@@ -116,6 +116,7 @@ namespace settings
 		g_iniPath = (std::filesystem::current_path() / "Data" / "SKSE" / "Plugins" / "MovementSpeedSlider.ini").string();
 		logLevel = Defaults::logLevel;
 		speedPercent = Defaults::speedPercent;
+		walkByDefault = Defaults::walkByDefault;
 		if (!std::filesystem::exists(g_iniPath))
 		{
 			logger::warn("{} is not there; the compiled defaults are in force", g_iniPath);
@@ -137,7 +138,13 @@ namespace settings
 				logger::warn("INI iSpeedPercent: \"{}\" is not a number; the default stays", it->second);
 			}
 		}
-		logger::info("settings: {} read: speed {}%", g_iniPath, speedPercent.load());
+		const auto walk = k.find("bwalkbydefault:general");
+		if (walk != k.end())
+		{
+			if (walk->second == "1") { walkByDefault = true; }
+			else if (walk->second != "0") { logger::warn("INI bWalkByDefault: \"{}\" is not 0 or 1; the default stays", walk->second); }
+		}
+		logger::info("settings: {} read: speed {}%, default motion {}", g_iniPath, speedPercent.load(), walkByDefault.load() ? "Walk" : "Run");
 	}
 
 	bool Save()
@@ -147,6 +154,7 @@ namespace settings
 		auto lines = ReadLines(g_iniPath);
 		WriteKey(lines, "Debug", "uLogLevel", std::to_string(logLevel.load()));
 		WriteKey(lines, "General", "iSpeedPercent", std::to_string(speedPercent.load()));
+		WriteKey(lines, "General", "bWalkByDefault", walkByDefault.load() ? "1" : "0");
 		std::ofstream file(g_iniPath, std::ios::trunc);
 		if (!file)
 		{

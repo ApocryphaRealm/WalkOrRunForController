@@ -3,6 +3,7 @@
 #include "PCH.h"
 
 #include "DevBenchTool.h"
+#include "Motion.h"
 #include "Row.h"
 #include "Settings.h"
 #include "Speed.h"
@@ -24,6 +25,7 @@ namespace
 		case SKSE::MessagingInterface::kDataLoaded:
 			msp::Strings::Load();
 			speed::Install();
+			motion::Install();
 			row::Install();
 			DevBenchTool::Init(true);
 			break;
@@ -31,6 +33,7 @@ namespace
 		case SKSE::MessagingInterface::kNewGame:
 			// The hook answers from the start, so there is nothing to put back; this only has the game take the speed once more.
 			logger::info("game {}: movement speed {}%", a_msg->type == SKSE::MessagingInterface::kNewGame ? "started" : "loaded", settings::speedPercent.load());
+			motion::ApplyOnLoad();
 			speed::Refresh();
 			break;
 		default:

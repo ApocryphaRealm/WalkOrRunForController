@@ -3,6 +3,7 @@
 #include "DevBenchTool.h"
 
 #include "DevBench/DevBenchAPI.h"
+#include "Motion.h"
 #include "Row.h"
 #include "Settings.h"
 #include "Speed.h"
@@ -49,15 +50,24 @@ namespace DevBenchTool
 				try { speed::SetPercent(std::stoi(Get(args, "value"))); }
 				catch (...) { ok = "false,\"error\":\"value is a whole number, 25 to 150\""; }
 			}
-			else if (!op.empty() && op != "state") { ok = "false,\"error\":\"op is state or set\""; }
+			else if (op == "motion")
+			{
+				const std::string value = Get(args, "value");
+				if (value == "walk") { motion::SetWalk(true); }
+				else if (value == "run") { motion::SetWalk(false); }
+				else { ok = "false,\"error\":\"value is walk or run\""; }
+			}
+			else if (!op.empty() && op != "state") { ok = "false,\"error\":\"op is state, set or motion\""; }
 
 			speed::SampleMovementSpeed();
 			const auto stats = speed::GetStats();
 			const auto state = row::GetState();
+			const auto gait = motion::GetStats();
 			const std::string out = std::format(
-				R"({{"ok":{},"op":"{}","percent":{},"hookInstalled":{},"hookCount":{},"speedMultBase":{},"speedMultApplied":{},"movementSpeed":{},"rowPresent":{},"rowIndex":{},"rowClip":{},"listEntries":{},"entryValue":{},"listPath":"{}"}})",
+				R"({{"ok":{},"op":"{}","percent":{},"hookInstalled":{},"hookCount":{},"speedMultBase":{},"speedMultApplied":{},"movementSpeed":{},"rowPresent":{},"rowIndex":{},"rowClip":{},"listEntries":{},"entryValue":{},"listPath":"{}","defaultMotion":"{}","motionRowPresent":{},"motionRowIndex":{},"gaitHookInstalled":{},"gaitCalls":{},"lastAnswerRun":{},"gamepadEnabled":{},"runFlag":{}}})",
 				ok, op.empty() ? "state" : op, settings::speedPercent.load(), stats.installed, stats.hookCount, stats.lastBase, stats.lastApplied, stats.movementSpeed,
-				state.present, state.index, state.clip, state.entries, state.entryValue, state.listPath);
+				state.present, state.index, state.clip, state.entries, state.entryValue, state.listPath, settings::walkByDefault.load() ? "walk" : "run", state.motionPresent, state.motionIndex,
+				gait.installed, gait.calls, gait.lastAnswer, gait.gamepadEnabled, gait.runFlag);
 			a_write(a_sink, out.c_str());
 		}
 	}
@@ -74,7 +84,7 @@ namespace DevBenchTool
 		}
 		constexpr const char* descriptor =
 			"{"
-			"\"description\":\"Movement Speed Slider live state and driver. op=state (default): percent, hook installed and read count, SpeedMult base and applied at the latest read, the player's movement speed sampled at the previous call, the row in the journal's list. op=set value=25..150: sets the percent as the slider would, saves the INI.\","
+			"\"description\":\"Movement Speed Slider live state and driver. op=state (default): percent, hook installed and read count, SpeedMult base and applied at the latest read, the player's movement speed sampled at the previous call, the row in the journal's list. op=set value=25..150: sets the percent as the slider would, saves the INI. op=motion value=walk|run: sets Default Motion as its row would.\","
 			"\"inputSchema\":{\"type\":\"object\",\"properties\":{\"op\":{\"type\":\"string\"},\"value\":{\"type\":\"number\"}}},"
 			"\"readOnly\":false"
 			"}";

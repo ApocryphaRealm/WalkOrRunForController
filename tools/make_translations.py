@@ -7,6 +7,9 @@ LANGS = ["english", "chinese", "czech", "french", "german", "italian", "japanese
 
 T = {
 "MSP_Row": ["Movement Speed", "移动速度", "Rychlost pohybu", "Vitesse de déplacement", "Bewegungsgeschwindigkeit", "Velocità di movimento", "移動速度", "이동 속도", "Prędkość ruchu", "Скорость передвижения", "Velocidad de movimiento"],
+"MSP_Motion": ["Default Motion", "默认移动方式", "Výchozí pohyb", "Déplacement par défaut", "Standardbewegung", "Movimento predefinito", "標準の移動", "기본 이동", "Domyślny ruch", "Движение по умолчанию", "Movimiento predeterminado"],
+"MSP_Run": ["Run", "奔跑", "Běh", "Course", "Rennen", "Corsa", "走る", "달리기", "Bieg", "Бег", "Correr"],
+"MSP_Walk": ["Walk", "行走", "Chůze", "Marche", "Gehen", "Camminata", "歩く", "걷기", "Chód", "Ходьба", "Caminar"],
 }
 
 root = pathlib.Path(__file__).resolve().parent.parent / "dist" / "Interface" / "Translations"
