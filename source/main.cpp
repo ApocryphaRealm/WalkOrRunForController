@@ -32,7 +32,7 @@ namespace
 		case SKSE::MessagingInterface::kPostLoadGame:
 		case SKSE::MessagingInterface::kNewGame:
 			// The hook answers from the start, so there is nothing to put back; this only has the game take the speed once more.
-			logger::info("game {}: movement speed {}%", a_msg->type == SKSE::MessagingInterface::kNewGame ? "started" : "loaded", settings::speedPercent.load());
+			logger::info("game {}: movement speed {}%", a_msg->type == SKSE::MessagingInterface::kNewGame ? "started" : "loaded", settings::SelectedPercent());
 			motion::ApplyOnLoad();
 			speed::Refresh();
 			break;

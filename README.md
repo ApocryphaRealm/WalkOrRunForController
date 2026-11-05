@@ -6,7 +6,7 @@ own settings do. On a controller, where you cannot choose to walk, this is how y
 
 - Scales walk, run and sprint alike. Default 100%: nothing changes.
 - The player only. NPCs and your horse keep their speed.
-- Beneath it, **Default Motion**: Run or Walk, default Run. On Walk you walk with the real walk animation and speed, on a controller too; the Sprint button still sprints. A horse walks too, as it does on a keyboard with run off.
+- Beneath it, **Default Motion**: Run or Walk, default Run. On Walk you walk with the real walk animation and speed, on a controller too; holding the Sprint button sprints. Run and Walk keep separate speeds: the slider, named Run Speed or Walk Speed, shows the selected one's. Sprint uses the Run value. A horse walks too, as it does on a keyboard with run off.
 - No plugin, no scripts. Works with any journal that keeps the game's System page: the game's own, SkyUI, Quest Journal Overhaul,
   Norden UI.
 

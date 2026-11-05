@@ -11,9 +11,19 @@
 //
 // This replaces that function:
 // - Run (the default): the same answer as the game's. Nothing changes.
-// - Walk with the gamepad enabled: no. The game then takes its own walk speed and animation, the path a keyboard uses with run off. The
-//   Sprint button still sprints, as it does from a keyboard's walk. Keyboard keys are not read in this state, as they are not in the game's.
+// - Walk with the gamepad enabled: no. The game then takes its own walk speed and animation, the path a keyboard uses with run off.
+//   Keyboard keys are not read in this state, as they are not in the game's.
 // - Walk without a gamepad: data.running, as in the game, set to false by the setting; Shift and Caps Lock flip it as usual.
+// - Walk with the Sprint button held: yes, on either device, as below.
+//
+// SPRINT ON WALK (the owner, 2026-11-05: holding Sprint did nothing on Walk; read from the 1.5.97 code). The Sprint handler (0x709580) only
+// flips PlayerCharacter's isSprinting flag on a press. The player's update (0x6B8F20) starts a sprint while that flag is on and the actor
+// is moving forward with stamina, and it also needs the actor already sprinting or its speed (0x5D1190) at or above a point between its
+// walk and run speeds. Otherwise it clears the flag. Walking never reaches that speed, so the flag was cleared the frame after the press.
+// So on Walk, in the Sprint handler, each frame the button is down: the flag is held on and the is-running answer is yes, so the speed
+// climbs and the game's own test starts the sprint; on release the flag goes off and the game's own test ends it. The handler is reached
+// through the control map, so a button UVC moved Sprint to works with no key read here, and no press of another button can count.
+// On Run nothing here does anything, and the game's press-to-flip stays.
 //
 // Nothing is stored in the save. The setting is in the mod's INI; data.running is set again at every load and new game.
 #include "PCH.h"
@@ -21,10 +31,12 @@
 #include "Motion.h"
 
 #include "Settings.h"
+#include "Speed.h"
 #include "utils/Logger.h"
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 
 namespace motion
@@ -34,6 +46,55 @@ namespace motion
 		std::atomic<bool> g_installed{ false };
 		std::atomic<bool> g_lastAnswer{ false };
 		std::atomic<std::uint64_t> g_calls{ 0 };
+		std::atomic<bool> g_sprintHeld{ false };
+		std::atomic<std::int64_t> g_sprintSeen{ 0 };
+		std::atomic<std::uint64_t> g_sprintEvents{ 0 };
+		constexpr std::int64_t kSprintForgetMs = 300;  // a held button repeats every frame; one that stopped (a menu took the release) is let go
+
+		std::int64_t NowMs()
+		{
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+		}
+
+		void SetSprintFlag(bool a_on)
+		{
+			if (auto* player = RE::PlayerCharacter::GetSingleton()) { player->GetPlayerRuntimeData().playerFlags.isSprinting = a_on; }
+		}
+
+		void SetSprintHeld(bool a_held)
+		{
+			if (g_sprintHeld.exchange(a_held) == a_held) { return; }
+			if (!a_held) { SetSprintFlag(false); }
+			logger::debug("motion: Sprint {} on Walk", a_held ? "held" : "let go");
+			speed::ApplyCurrent();
+		}
+
+		struct SprintHandlerHook
+		{
+			static void ProcessButton(RE::SprintHandler* a_this, RE::ButtonEvent* a_event, RE::PlayerControlsData* a_data)
+			{
+				original(a_this, a_event, a_data);
+				if (!a_event || !settings::walkByDefault.load(std::memory_order_relaxed)) { return; }
+				g_sprintEvents.fetch_add(1, std::memory_order_relaxed);
+				const bool down = a_event->Value() != 0.0f;
+				if (down)
+				{
+					g_sprintSeen.store(NowMs(), std::memory_order_relaxed);
+					SetSprintFlag(true);
+				}
+				SetSprintHeld(down);
+			}
+			static inline REL::Relocation<decltype(ProcessButton)> original;
+		};
+
+		// The button is down, by the handler's last word and not longer ago than it repeats.
+		bool SprintHeldFresh()
+		{
+			if (!g_sprintHeld.load(std::memory_order_relaxed)) { return false; }
+			if (NowMs() - g_sprintSeen.load(std::memory_order_relaxed) <= kSprintForgetMs) { return true; }
+			SetSprintHeld(false);
+			return false;
+		}
 
 		bool GamepadEnabled()
 		{
@@ -44,7 +105,8 @@ namespace motion
 		bool IsRunningHook(RE::PlayerControls* a_controls)
 		{
 			bool answer = false;
-			if (GamepadEnabled()) { answer = !settings::walkByDefault.load(std::memory_order_relaxed); }
+			if (settings::walkByDefault.load(std::memory_order_relaxed) && SprintHeldFresh()) { answer = true; }
+			else if (GamepadEnabled()) { answer = !settings::walkByDefault.load(std::memory_order_relaxed); }
 			else { answer = a_controls && a_controls->data.running; }
 			g_calls.fetch_add(1, std::memory_order_relaxed);
 			g_lastAnswer.store(answer, std::memory_order_relaxed);
@@ -76,6 +138,8 @@ namespace motion
 		}
 		SKSE::AllocTrampoline(14);
 		SKSE::GetTrampoline().write_branch<5>(target.address(), &IsRunningHook);
+		REL::Relocation<std::uintptr_t> sprintVtable{ RE::VTABLE_SprintHandler[0] };
+		SprintHandlerHook::original = sprintVtable.write_vfunc(4, SprintHandlerHook::ProcessButton);
 		g_installed = true;
 		logger::info("motion: hook on PlayerControls's is-running test at {:X}; {}", target.address(), settings::walkByDefault.load() ? "Walk" : "Run");
 	}
@@ -91,13 +155,16 @@ namespace motion
 	{
 		const bool before = settings::walkByDefault.exchange(a_walk);
 		if (before == a_walk) { return; }
-		logger::info("motion: {} -> {}", before ? "Walk" : "Run", a_walk ? "Walk" : "Run");
+		logger::info("motion: {} -> {}; the slider now holds the {} value, {}%", before ? "Walk" : "Run", a_walk ? "Walk" : "Run", a_walk ? "Walk" : "Run", settings::SelectedPercent());
 		settings::Save();
+		speed::ApplyCurrent();
 		if (auto* tasks = SKSE::GetTaskInterface())
 		{
 			tasks->AddTask([a_walk] { SetRunFlag(!a_walk); });
 		}
 	}
+
+	bool SprintHeld() { return g_sprintHeld.load(std::memory_order_relaxed); }
 
 	Stats GetStats()
 	{
@@ -108,6 +175,8 @@ namespace motion
 		out.gamepadEnabled = GamepadEnabled();
 		auto* controls = RE::PlayerControls::GetSingleton();
 		out.runFlag = controls && controls->data.running;
+		out.sprintHeld = g_sprintHeld.load();
+		out.sprintEvents = g_sprintEvents.load();
 		return out;
 	}
 }

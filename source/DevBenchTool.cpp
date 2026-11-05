@@ -64,10 +64,10 @@ namespace DevBenchTool
 			const auto state = row::GetState();
 			const auto gait = motion::GetStats();
 			const std::string out = std::format(
-				R"({{"ok":{},"op":"{}","percent":{},"hookInstalled":{},"hookCount":{},"speedMultBase":{},"speedMultApplied":{},"movementSpeed":{},"rowPresent":{},"rowIndex":{},"rowClip":{},"listEntries":{},"entryValue":{},"listPath":"{}","defaultMotion":"{}","motionRowPresent":{},"motionRowIndex":{},"gaitHookInstalled":{},"gaitCalls":{},"lastAnswerRun":{},"gamepadEnabled":{},"runFlag":{}}})",
-				ok, op.empty() ? "state" : op, settings::speedPercent.load(), stats.installed, stats.hookCount, stats.lastBase, stats.lastApplied, stats.movementSpeed,
+				R"({{"ok":{},"op":"{}","percent":{},"hookInstalled":{},"hookCount":{},"speedMultBase":{},"speedMultApplied":{},"movementSpeed":{},"rowPresent":{},"rowIndex":{},"rowClip":{},"listEntries":{},"entryValue":{},"listPath":"{}","defaultMotion":"{}","motionRowPresent":{},"motionRowIndex":{},"gaitHookInstalled":{},"gaitCalls":{},"lastAnswerRun":{},"gamepadEnabled":{},"runFlag":{},"runPercent":{},"walkPercent":{},"appliedPercent":{},"sprintHeld":{},"sprintEvents":{}}})",
+				ok, op.empty() ? "state" : op, settings::SelectedPercent(), stats.installed, stats.hookCount, stats.lastBase, stats.lastApplied, stats.movementSpeed,
 				state.present, state.index, state.clip, state.entries, state.entryValue, state.listPath, settings::walkByDefault.load() ? "walk" : "run", state.motionPresent, state.motionIndex,
-				gait.installed, gait.calls, gait.lastAnswer, gait.gamepadEnabled, gait.runFlag);
+				gait.installed, gait.calls, gait.lastAnswer, gait.gamepadEnabled, gait.runFlag, settings::runPercent.load(), settings::walkPercent.load(), stats.appliedPercent, gait.sprintHeld, gait.sprintEvents);
 			a_write(a_sink, out.c_str());
 		}
 	}

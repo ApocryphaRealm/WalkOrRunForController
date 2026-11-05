@@ -8,6 +8,7 @@ namespace motion
 	void Install();           // at kDataLoaded
 	void ApplyOnLoad();       // at every load and new game
 	void SetWalk(bool a_walk);  // any thread: applies at once, saves the INI
+	bool SprintHeld();          // on Walk: the player's Sprint button is down now
 
 	struct Stats
 	{
@@ -16,6 +17,8 @@ namespace motion
 		bool lastAnswer = false;     // what the latest ask got: true is run
 		bool gamepadEnabled = false;
 		bool runFlag = false;        // PlayerControls's own flag
+		bool sprintHeld = false;     // on Walk: the Sprint button is down
+		std::uint64_t sprintEvents = 0;  // button events the game gave its Sprint handler on Walk
 	};
 	Stats GetStats();
 }

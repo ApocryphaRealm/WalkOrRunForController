@@ -6,7 +6,10 @@
 // vtable, so the answer changes for the player only, and nothing is stored: no ModAV, no SetBaseAV, no co-save. The value lives in
 // this mod's INI and in one float here, so a save made at any setting holds what it would hold without the mod, and the hook being in
 // place from the moment the game starts is what "reapplied at every load and new game" comes to. At 100% the game's value passes
-// through untouched. SpeedMult covers every gait, so walk, run and sprint scale alike.
+// through untouched. SpeedMult covers every gait: 0x60EEF0 multiplies the walk and run columns of every direction by it.
+//
+// WALK AND RUN HAVE THEIR OWN VALUE (the owner, 2026-11-05). The slider shows and edits the selected Default Motion's; choosing the other
+// loads its value at once. Sprint has no value of its own: the same read scales it, and it uses Run's, also while Sprint is held on Walk.
 //
 // The game holds on to a computed speed until something makes it recompute. Changing CarryWeight makes it do so (Walk Speed Tuner and
 // Dynamic Speed Controller use this). Refresh raises the temporary CarryWeight modifier by a little and takes it back in the same
@@ -15,6 +18,7 @@
 
 #include "Speed.h"
 
+#include "Motion.h"
 #include "Settings.h"
 #include "utils/Logger.h"
 
@@ -31,6 +35,12 @@ namespace speed
 		std::atomic<float> g_lastBase{ 0.0f };
 		std::atomic<float> g_lastApplied{ 0.0f };
 		std::atomic<float> g_movementSpeed{ 0.0f };
+		std::atomic<int> g_appliedPercent{ 100 };
+
+		int CurrentPercent()
+		{
+			return settings::walkByDefault.load() && !motion::SprintHeld() ? settings::walkPercent.load() : settings::runPercent.load();
+		}
 
 		using GetActorValue_t = float (*)(RE::ActorValueOwner*, RE::ActorValue);
 		GetActorValue_t g_original = nullptr;
@@ -51,7 +61,8 @@ namespace speed
 
 	void Install()
 	{
-		g_scale = static_cast<float>(settings::speedPercent.load()) / 100.0f;
+		g_appliedPercent = CurrentPercent();
+		g_scale = static_cast<float>(g_appliedPercent.load()) / 100.0f;
 		if (g_installed) { return; }
 		auto* player = RE::PlayerCharacter::GetSingleton();
 		auto* owner = player ? player->AsActorValueOwner() : nullptr;
@@ -72,7 +83,7 @@ namespace speed
 		g_installed = true;
 		logger::info("speed: hook on the player's GetActorValue: vtable {:X}, slot 1, original {:X}, owner at player+{:X}; {}%",
 			reinterpret_cast<std::uintptr_t>(vtable), reinterpret_cast<std::uintptr_t>(g_original),
-			reinterpret_cast<std::uintptr_t>(owner) - reinterpret_cast<std::uintptr_t>(player), settings::speedPercent.load());
+			reinterpret_cast<std::uintptr_t>(owner) - reinterpret_cast<std::uintptr_t>(player), g_appliedPercent.load());
 	}
 
 	void Refresh()
@@ -96,18 +107,27 @@ namespace speed
 			owner->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kCarryWeight, kNudge);
 			owner->RestoreActorValue(RE::ACTOR_VALUE_MODIFIER::kTemporary, RE::ActorValue::kCarryWeight, -kNudge);
 #endif
-			logger::debug("speed: refresh done; {}%", settings::speedPercent.load());
+			logger::debug("speed: refresh done; {}%", g_appliedPercent.load());
 		});
 	}
 
 	void SetPercent(int a_percent)
 	{
 		const int percent = std::clamp(a_percent, settings::kPercentMin, settings::kPercentMax);
-		const int before = settings::speedPercent.exchange(percent);
+		const bool walk = settings::walkByDefault.load();
+		const int before = (walk ? settings::walkPercent : settings::runPercent).exchange(percent);
 		if (before == percent) { return; }
-		g_scale = static_cast<float>(percent) / 100.0f;
-		logger::info("speed: {}% -> {}%", before, percent);
+		logger::info("speed: {} {}% -> {}%", walk ? "Walk" : "Run", before, percent);
 		settings::Save();
+		ApplyCurrent();
+	}
+
+	void ApplyCurrent()
+	{
+		const int percent = CurrentPercent();
+		if (g_appliedPercent.exchange(percent) == percent) { return; }
+		g_scale = static_cast<float>(percent) / 100.0f;
+		logger::debug("speed: {}% in force", percent);
 		Refresh();
 	}
 
@@ -119,6 +139,7 @@ namespace speed
 		out.lastBase = g_lastBase.load();
 		out.lastApplied = g_lastApplied.load();
 		out.movementSpeed = g_movementSpeed.load();
+		out.appliedPercent = g_appliedPercent.load();
 		return out;
 	}
 

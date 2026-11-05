@@ -115,7 +115,8 @@ namespace settings
 	{
 		g_iniPath = (std::filesystem::current_path() / "Data" / "SKSE" / "Plugins" / "MovementSpeedSlider.ini").string();
 		logLevel = Defaults::logLevel;
-		speedPercent = Defaults::speedPercent;
+		runPercent = Defaults::runPercent;
+		walkPercent = Defaults::walkPercent;
 		walkByDefault = Defaults::walkByDefault;
 		if (!std::filesystem::exists(g_iniPath))
 		{
@@ -124,27 +125,36 @@ namespace settings
 		}
 		const auto k = ReadKeys(g_iniPath);
 		ReadUInt(k, "uloglevel:debug", logLevel);
-		const auto it = k.find("ispeedpercent:general");
-		if (it != k.end())
-		{
+		const auto readPercent = [&](const char* a_name, std::atomic<int>& a_out) {
+			const auto it = k.find(Lower(a_name) + ":general");
+			if (it == k.end()) { return false; }
 			try
 			{
 				const int v = std::stoi(it->second);
-				if (v >= kPercentMin && v <= kPercentMax) { speedPercent = v; }
-				else { logger::warn("INI iSpeedPercent: {} is not {} to {}; the default stays", v, kPercentMin, kPercentMax); }
+				if (v >= kPercentMin && v <= kPercentMax) { a_out = v; }
+				else { logger::warn("INI {}: {} is not {} to {}; the default stays", a_name, v, kPercentMin, kPercentMax); }
 			}
 			catch (...)
 			{
-				logger::warn("INI iSpeedPercent: \"{}\" is not a number; the default stays", it->second);
+				logger::warn("INI {}: \"{}\" is not a number; the default stays", a_name, it->second);
 			}
+			return true;
+		};
+		// The one value before Run and Walk had their own (2026-11-05) gives both their start; the next save drops its line.
+		if (readPercent("iSpeedPercent", runPercent))
+		{
+			walkPercent = runPercent.load();
+			logger::info("settings: iSpeedPercent {}% is now both the Run and the Walk value", runPercent.load());
 		}
+		readPercent("iRunSpeedPercent", runPercent);
+		readPercent("iWalkSpeedPercent", walkPercent);
 		const auto walk = k.find("bwalkbydefault:general");
 		if (walk != k.end())
 		{
 			if (walk->second == "1") { walkByDefault = true; }
 			else if (walk->second != "0") { logger::warn("INI bWalkByDefault: \"{}\" is not 0 or 1; the default stays", walk->second); }
 		}
-		logger::info("settings: {} read: speed {}%, default motion {}", g_iniPath, speedPercent.load(), walkByDefault.load() ? "Walk" : "Run");
+		logger::info("settings: {} read: run speed {}%, walk speed {}%, default motion {}", g_iniPath, runPercent.load(), walkPercent.load(), walkByDefault.load() ? "Walk" : "Run");
 	}
 
 	bool Save()
@@ -153,7 +163,9 @@ namespace settings
 		std::scoped_lock l(g_saveLock);
 		auto lines = ReadLines(g_iniPath);
 		WriteKey(lines, "Debug", "uLogLevel", std::to_string(logLevel.load()));
-		WriteKey(lines, "General", "iSpeedPercent", std::to_string(speedPercent.load()));
+		std::erase_if(lines, [](const std::string& a_line) { return Lower(Trim(a_line)).starts_with("ispeedpercent"); });
+		WriteKey(lines, "General", "iRunSpeedPercent", std::to_string(runPercent.load()));
+		WriteKey(lines, "General", "iWalkSpeedPercent", std::to_string(walkPercent.load()));
 		WriteKey(lines, "General", "bWalkByDefault", walkByDefault.load() ? "1" : "0");
 		std::ofstream file(g_iniPath, std::ios::trunc);
 		if (!file)

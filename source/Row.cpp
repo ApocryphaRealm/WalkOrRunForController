@@ -61,6 +61,7 @@ namespace row
 
 		int g_entryPercent = -1;  // main thread: the percent last seen in our object; another value there means the player moved it
 		int g_entryWalk = -1;     // main thread: the same for Default Motion: 0 Run, 1 Walk
+		int g_rowTextWalk = -1;   // main thread: which of the two the row's name last said
 
 		double ValueOf(int a_percent) { return static_cast<double>(a_percent - settings::kPercentMin) / 20.0; }
 
@@ -69,7 +70,11 @@ namespace row
 			return std::clamp(static_cast<int>(std::lround(a_value * 20.0)) + settings::kPercentMin, settings::kPercentMin, settings::kPercentMax);
 		}
 
-		std::string RowText(int a_percent) { return std::format("{} {}%", TR("MSP_Row", "Movement Speed"), a_percent); }
+		// Names which value it is editing: the selected Default Motion's.
+		std::string RowText(int a_percent)
+		{
+			return std::format("{} {}%", settings::walkByDefault.load() ? TR("MSP_RowWalk", "Walk Speed") : TR("MSP_RowRun", "Run Speed"), a_percent);
+		}
 
 		void Publish(State a_state)
 		{
@@ -99,8 +104,9 @@ namespace row
 
 		void InsertRow(RE::GFxMovieView* a_movie, RE::GFxValue& a_entries, const std::string& a_listPath, std::uint32_t a_afterIndex)
 		{
-			const int percent = settings::speedPercent.load();
+			const int percent = settings::SelectedPercent();
 			const std::string text = RowText(percent);
+			g_rowTextWalk = settings::walkByDefault.load() ? 1 : 0;
 			RE::GFxValue entry;
 			a_movie->CreateObject(&entry);
 			if (!entry.IsObject())
@@ -112,7 +118,7 @@ namespace row
 			entry.SetMember("movieType", RE::GFxValue(0.0));
 			entry.SetMember("ID", RE::GFxValue(kRowId));
 			entry.SetMember("value", RE::GFxValue(ValueOf(percent)));
-			entry.SetMember("defaultVal", RE::GFxValue(ValueOf(settings::Defaults::speedPercent)));
+			entry.SetMember("defaultVal", RE::GFxValue(ValueOf(settings::Defaults::runPercent)));
 
 			std::array<RE::GFxValue, 3> args{ RE::GFxValue(static_cast<double>(a_afterIndex + 1)), RE::GFxValue(0.0), entry };
 			if (!a_entries.Invoke("splice", nullptr, args.data(), args.size()))
@@ -298,13 +304,13 @@ namespace row
 			if (rowIndex < 0)
 			{
 				// Not the Gameplay list (Display, Audio): leave it alone, and hand any clip we marked back.
-				UpdateClips(a_movie, list, listPath, settings::speedPercent.load(), {}, false, false);
+				UpdateClips(a_movie, list, listPath, settings::SelectedPercent(), {}, false, false);
 				Publish(std::move(state));
 				return;
 			}
 
 			RE::GFxValue value;
-			int entryPercent = settings::speedPercent.load();
+			int entryPercent = settings::SelectedPercent();
 			if (EntryMember(rowEntry, "value", value) && value.IsNumber()) { entryPercent = PercentOf(value.GetNumber()); }
 
 			bool changed = false;
@@ -314,11 +320,16 @@ namespace row
 				speed::SetPercent(entryPercent);
 				changed = true;
 			}
-			const int percent = settings::speedPercent.load();
-			if (percent != entryPercent)  // DevBench, from outside the list
+			const int percent = settings::SelectedPercent();
+			if (percent != entryPercent)  // the other Default Motion's value, or DevBench, from outside the list
 			{
 				rowEntry.SetMember("value", RE::GFxValue(ValueOf(percent)));
 				g_entryPercent = percent;
+				changed = true;
+			}
+			if (const int selected = settings::walkByDefault.load() ? 1 : 0; selected != g_rowTextWalk)  // the name, even where the two values match
+			{
+				g_rowTextWalk = selected;
 				changed = true;
 			}
 			const std::string text = RowText(percent);
