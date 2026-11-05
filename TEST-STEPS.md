@@ -2,7 +2,7 @@
 
 Nothing here has run in game. Rule 20: a step passes on what is seen, not on a log line. A step not reached is reported as not reached.
 
-**Setup.** Package: `7. current test buildsSkyrim - Movement Speed SliderMovement Speed Slider 1.0.0 FOMOD`. Install it with `install-test-build.py`, Line-SE-AE16 on 1.5.97, into a new MO2 folder with a meta.ini. Njordlinger list, Norden UI Black's journal winning.
+**Setup.** Package: `7. current test builds/Skyrim - Movement Speed Slider/Movement Speed Slider 1.0.0 FOMOD`. Install it with `install-test-build.py`, Line-SE-AE16 on 1.5.97, into a new MO2 folder with a meta.ini. Njordlinger list, Norden UI Black's journal winning.
 A controller connected, `bGamepadEnable=1`. A disposable save (rule 51), standing in open ground. `[General] iSpeedPercent=100` in the
 installed INI. Tool: DevBench `POST /api/tool/msp.control` (`{}` for state, `{"op":"set","value":N}` to set). Log:
 `My Games\Skyrim Special Edition\SKSE\MovementSpeedSlider.log`.
