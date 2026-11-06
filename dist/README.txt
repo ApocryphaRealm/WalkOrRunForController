@@ -19,4 +19,4 @@ WORKS WITH
 Any journal that keeps the game's System page: the game's own, SkyUI, Quest Journal Overhaul, Norden UI. No plugin, no scripts, no file of the journal is replaced.
 
 LICENCE
-GPL-3.0-or-later. Source: https://github.com/ApocryphaRealm/MovementSpeedSlider
+GPL-3.0-or-later. Source: https://github.com/ApocryphaRealm/WalkOrRunForController

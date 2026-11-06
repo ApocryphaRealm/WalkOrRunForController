@@ -2,7 +2,7 @@
     "name": "movementspeedslider",
     "version-string": "1.0.0",
     "description": "Walk or Run for Controller - a slider among the game's Gameplay settings that sets the player's movement speed",
-    "homepage": "https://github.com/ApocryphaRealm/MovementSpeedSlider",
+    "homepage": "https://github.com/ApocryphaRealm/WalkOrRunForController",
     "license": "GPL-3.0-or-later",
     "dependencies": [
         "commonlibsse-ng",
