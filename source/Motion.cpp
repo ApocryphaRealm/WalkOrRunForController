@@ -25,6 +25,10 @@
 // through the control map, so a button UVC moved Sprint to works with no key read here, and no press of another button can count.
 // On Run nothing here does anything, and the game's press-to-flip stays.
 //
+// RUN AFTER SPRINT (a Nexus request, 2026-11-06: "when you stop Sprinting, you Run until you stop, then you default to Walk again").
+// Default Motion's third choice. On Walk, letting go of Sprint leaves the is-running answer at yes while the move stick or keys still
+// push; the first ask that finds no move input ends it, and the walk answer comes back. The run speed's value stays in force meanwhile.
+//
 // Nothing is stored in the save. The setting is in the mod's INI; data.running is set again at every load and new game.
 #include "PCH.h"
 
@@ -49,6 +53,7 @@ namespace motion
 		std::atomic<bool> g_sprintHeld{ false };
 		std::atomic<std::int64_t> g_sprintSeen{ 0 };
 		std::atomic<std::uint64_t> g_sprintEvents{ 0 };
+		std::atomic<bool> g_carryRun{ false };  // on Walk with run after sprint: a sprint ended and the player has not stopped yet
 		constexpr std::int64_t kSprintForgetMs = 300;  // a held button repeats every frame; one that stopped (a menu took the release) is let go
 
 		std::int64_t NowMs()
@@ -65,6 +70,8 @@ namespace motion
 		{
 			if (g_sprintHeld.exchange(a_held) == a_held) { return; }
 			if (!a_held) { SetSprintFlag(false); }
+			const bool carry = !a_held && settings::runAfterSprint.load(std::memory_order_relaxed);
+			if (g_carryRun.exchange(carry) != carry && carry) { logger::debug("motion: Sprint let go; running until the player stops"); }
 			logger::debug("motion: Sprint {} on Walk", a_held ? "held" : "let go");
 			speed::ApplyCurrent();
 		}
@@ -102,10 +109,25 @@ namespace motion
 			return devices && devices->IsGamepadEnabled();
 		}
 
+		// The run after a sprint lasts while there is move input: the stick or the movement keys.
+		bool CarryRun(RE::PlayerControls* a_controls)
+		{
+			if (!g_carryRun.load(std::memory_order_relaxed)) { return false; }
+			if (a_controls && settings::runAfterSprint.load(std::memory_order_relaxed))
+			{
+				const auto& move = a_controls->data.moveInputVec;
+				if (move.x * move.x + move.y * move.y > 0.01f) { return true; }
+			}
+			g_carryRun.store(false, std::memory_order_relaxed);
+			logger::debug("motion: the player stopped; walking again");
+			speed::ApplyCurrent();
+			return false;
+		}
+
 		bool IsRunningHook(RE::PlayerControls* a_controls)
 		{
 			bool answer = false;
-			if (settings::walkByDefault.load(std::memory_order_relaxed) && SprintHeldFresh()) { answer = true; }
+			if (settings::walkByDefault.load(std::memory_order_relaxed) && (SprintHeldFresh() || CarryRun(a_controls))) { answer = true; }
 			else if (GamepadEnabled()) { answer = !settings::walkByDefault.load(std::memory_order_relaxed); }
 			else { answer = a_controls && a_controls->data.running; }
 			g_calls.fetch_add(1, std::memory_order_relaxed);
@@ -164,7 +186,20 @@ namespace motion
 		}
 	}
 
-	bool SprintHeld() { return g_sprintHeld.load(std::memory_order_relaxed); }
+	void SetMotion(int a_value)
+	{
+		const bool walk = a_value >= 1;
+		const bool carry = a_value == 2;
+		if (!carry) { g_carryRun.store(false); }
+		if (settings::runAfterSprint.exchange(carry) != carry)
+		{
+			logger::info("motion: run after sprint {}", carry ? "on" : "off");
+			if (walk == settings::walkByDefault.load()) { settings::Save(); }  // SetWalk saves when Walk itself changes
+		}
+		SetWalk(walk);
+	}
+
+	bool SprintHeld() { return g_sprintHeld.load(std::memory_order_relaxed) || g_carryRun.load(std::memory_order_relaxed); }
 
 	Stats GetStats()
 	{

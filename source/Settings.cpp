@@ -118,6 +118,7 @@ namespace settings
 		runPercent = Defaults::runPercent;
 		walkPercent = Defaults::walkPercent;
 		walkByDefault = Defaults::walkByDefault;
+		runAfterSprint = Defaults::runAfterSprint;
 		if (!std::filesystem::exists(g_iniPath))
 		{
 			logger::warn("{} is not there; the compiled defaults are in force", g_iniPath);
@@ -154,7 +155,14 @@ namespace settings
 			if (walk->second == "1") { walkByDefault = true; }
 			else if (walk->second != "0") { logger::warn("INI bWalkByDefault: \"{}\" is not 0 or 1; the default stays", walk->second); }
 		}
-		logger::info("settings: {} read: run speed {}%, walk speed {}%, default motion {}", g_iniPath, runPercent.load(), walkPercent.load(), walkByDefault.load() ? "Walk" : "Run");
+		const auto carry = k.find("brunaftersprint:general");
+		if (carry != k.end())
+		{
+			if (carry->second == "1") { runAfterSprint = true; }
+			else if (carry->second != "0") { logger::warn("INI bRunAfterSprint: \"{}\" is not 0 or 1; the default stays", carry->second); }
+		}
+		logger::info("settings: {} read: run speed {}%, walk speed {}%, default motion {}{}", g_iniPath, runPercent.load(), walkPercent.load(), walkByDefault.load() ? "Walk" : "Run",
+			runAfterSprint.load() ? ", run after sprint" : "");
 	}
 
 	bool Save()
@@ -167,6 +175,7 @@ namespace settings
 		WriteKey(lines, "General", "iRunSpeedPercent", std::to_string(runPercent.load()));
 		WriteKey(lines, "General", "iWalkSpeedPercent", std::to_string(walkPercent.load()));
 		WriteKey(lines, "General", "bWalkByDefault", walkByDefault.load() ? "1" : "0");
+		WriteKey(lines, "General", "bRunAfterSprint", runAfterSprint.load() ? "1" : "0");
 		std::ofstream file(g_iniPath, std::ios::trunc);
 		if (!file)
 		{

@@ -15,6 +15,7 @@ namespace settings
 		static constexpr int runPercent = 100;
 		static constexpr int walkPercent = 100;
 		static constexpr bool walkByDefault = false;
+		static constexpr bool runAfterSprint = false;
 	};
 
 	inline constexpr int kPercentMin = 25;
@@ -24,6 +25,10 @@ namespace settings
 	inline std::atomic<int> runPercent{ Defaults::runPercent };    // iRunSpeedPercent:General - the slider while Default Motion is Run
 	inline std::atomic<int> walkPercent{ Defaults::walkPercent };  // iWalkSpeedPercent:General - the slider while Default Motion is Walk
 	inline std::atomic<bool> walkByDefault{ Defaults::walkByDefault };  // bWalkByDefault:General - the Default Motion row
+	inline std::atomic<bool> runAfterSprint{ Defaults::runAfterSprint };  // bRunAfterSprint:General - on Walk, a sprint ends in a run until the player stops
+
+	// The Default Motion row's value: 0 Run, 1 Walk, 2 Walk with a run after each sprint.
+	inline int MotionValue() { return walkByDefault.load() ? (runAfterSprint.load() ? 2 : 1) : 0; }
 
 	// The value the slider shows and edits: the selected Default Motion's.
 	inline int SelectedPercent() { return walkByDefault.load() ? walkPercent.load() : runPercent.load(); }

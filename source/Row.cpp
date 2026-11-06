@@ -138,6 +138,7 @@ namespace row
 			const std::string text = TR("MSP_Motion", "Default Motion");
 			const std::string run = TR("MSP_Run", "Run");
 			const std::string walking = TR("MSP_Walk", "Walk");
+			const std::string walkRun = TR("MSP_WalkRunAfterSprint", "Walk, run after sprint");
 			RE::GFxValue entry;
 			RE::GFxValue options;
 			a_movie->CreateObject(&entry);
@@ -149,11 +150,12 @@ namespace row
 			}
 			options.PushBack(RE::GFxValue(run.c_str()));
 			options.PushBack(RE::GFxValue(walking.c_str()));
+			options.PushBack(RE::GFxValue(walkRun.c_str()));
 			entry.SetMember("text", RE::GFxValue(text.c_str()));
 			entry.SetMember("movieType", RE::GFxValue(1.0));
 			entry.SetMember("options", options);
 			entry.SetMember("ID", RE::GFxValue(kMotionId));
-			entry.SetMember("value", RE::GFxValue(walk ? 1.0 : 0.0));
+			entry.SetMember("value", RE::GFxValue(static_cast<double>(settings::MotionValue())));
 			entry.SetMember("defaultVal", RE::GFxValue(settings::Defaults::walkByDefault ? 1.0 : 0.0));
 
 			std::array<RE::GFxValue, 3> args{ RE::GFxValue(static_cast<double>(a_afterIndex + 1)), RE::GFxValue(0.0), entry };
@@ -162,7 +164,7 @@ namespace row
 				logger::debug("row: splice failed; Default Motion goes at the end of the list");
 				a_entries.PushBack(entry);
 			}
-			g_entryWalk = walk ? 1 : 0;
+			g_entryWalk = settings::MotionValue();
 			a_movie->Invoke((a_listPath + ".InvalidateData").c_str(), nullptr, nullptr, 0);
 			logger::info("row: Default Motion added beneath the slider (row {}), {}", a_afterIndex + 1, walk ? "Walk" : "Run");
 		}
@@ -189,7 +191,7 @@ namespace row
 				const std::string clipPath = a_listPath + "." + name;
 				if (a_motionChanged && id.IsNumber() && id.GetNumber() == kMotionId)
 				{
-					a_movie->SetVariable((clipPath + ".value").c_str(), RE::GFxValue(settings::walkByDefault.load() ? 1.0 : 0.0));
+					a_movie->SetVariable((clipPath + ".value").c_str(), RE::GFxValue(static_cast<double>(settings::MotionValue())));
 				}
 				if (ours)
 				{
@@ -338,14 +340,14 @@ namespace row
 			// Default Motion, the same two ways round
 			RE::GFxValue motionValue;
 			bool motionChanged = false;
-			int entryWalk = settings::walkByDefault.load() ? 1 : 0;
-			if (EntryMember(motionEntry, "value", motionValue) && motionValue.IsNumber()) { entryWalk = motionValue.GetNumber() >= 0.5 ? 1 : 0; }
+			int entryWalk = settings::MotionValue();
+			if (EntryMember(motionEntry, "value", motionValue) && motionValue.IsNumber()) { entryWalk = std::clamp(static_cast<int>(std::lround(motionValue.GetNumber())), 0, 2); }
 			if (entryWalk != g_entryWalk)
 			{
 				g_entryWalk = entryWalk;
-				motion::SetWalk(entryWalk == 1);
+				motion::SetMotion(entryWalk);
 			}
-			const int walk = settings::walkByDefault.load() ? 1 : 0;
+			const int walk = settings::MotionValue();
 			if (walk != entryWalk)
 			{
 				motionEntry.SetMember("value", RE::GFxValue(static_cast<double>(walk)));

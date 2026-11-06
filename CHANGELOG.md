@@ -8,6 +8,11 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 * **failed** - built but crashed or malfunctioned; the number was reclaimed
 * **scratch** - a hypothesis-test build that never held a real number
 
+## 1.1.0 - 2026-11-06 - untested
+
+### Added
+- Default Motion has a third choice, Walk, run after sprint: letting go of Sprint keeps you running until you stop moving, then you walk again (INI bRunAfterSprint)
+
 ## 1.0.0 - 2026-11-04 - working
 
 ### Added
