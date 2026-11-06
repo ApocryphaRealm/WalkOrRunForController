@@ -55,3 +55,15 @@ Own project: Custom Difficulty UI 1.0.8 (`6. current wip mods\CustomDifficultyUI
 page plus game settings: no Scaleform in its source). Unbind Vanilla Controls is the project precedent for a C++ hook of
 JournalMenu::AdvanceMovie and for adding rows to a System page list without replacing the SWF. Norden UI Black replaces the
 journal SWF; its SettingsOptionItem and OptionsList are the same classes as vanilla's, by diff.
+
+## The name, searched 2026-11-06 (renamed Walk or Run for Controller)
+
+The owner renamed the mod "Walk or Run for Controller" before its first release. Searched Nexus (skyrimspecialedition, GraphQL
+`nameStemmed`, op MATCHES): walk or run for controller, walk or run, walk run controller, controller walk, walk for controller,
+run for controller, walk toggle controller, walk run, walking controller, gamepad walk, walk gamepad, always walk, default walk.
+Searched GitHub (`gh search repos`): walk or run for controller, skyrim walk controller, skyrim walk run gamepad, skse walk run - no
+results.
+
+No mod carries the name. The nearest names are the two already in the table above, Controller Walk Run Toggle SSE (38471) and
+Controller Default Walking (194815), plus Walk - Run - Sprint for Improved Oculus Touch Controls (29881, VR only) and the Toggle
+Walk-Run fixes (61671, 116439, 44689, 191663), which repair the keyboard Run key and add nothing for a controller.

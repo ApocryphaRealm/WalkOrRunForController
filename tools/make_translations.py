@@ -6,7 +6,8 @@ import pathlib
 LANGS = ["english", "chinese", "czech", "french", "german", "italian", "japanese", "korean", "polish", "russian", "spanish"]
 
 T = {
-"MSP_Row": ["Movement Speed", "移动速度", "Rychlost pohybu", "Vitesse de déplacement", "Bewegungsgeschwindigkeit", "Velocità di movimento", "移動速度", "이동 속도", "Prędkość ruchu", "Скорость передвижения", "Velocidad de movimiento"],
+"MSP_RowRun": ["Run Speed", "奔跑速度", "Rychlost běhu", "Vitesse de course", "Renngeschwindigkeit", "Velocità di corsa", "走行速度", "달리기 속도", "Prędkość biegu", "Скорость бега", "Velocidad al correr"],
+"MSP_RowWalk": ["Walk Speed", "行走速度", "Rychlost chůze", "Vitesse de marche", "Gehgeschwindigkeit", "Velocità di camminata", "歩行速度", "걷기 속도", "Prędkość chodu", "Скорость ходьбы", "Velocidad al caminar"],
 "MSP_Motion": ["Default Motion", "默认移动方式", "Výchozí pohyb", "Déplacement par défaut", "Standardbewegung", "Movimento predefinito", "標準の移動", "기본 이동", "Domyślny ruch", "Движение по умолчанию", "Movimiento predeterminado"],
 "MSP_Run": ["Run", "奔跑", "Běh", "Course", "Rennen", "Corsa", "走る", "달리기", "Bieg", "Бег", "Correr"],
 "MSP_Walk": ["Walk", "行走", "Chůze", "Marche", "Gehen", "Camminata", "歩く", "걷기", "Chód", "Ходьба", "Caminar"],

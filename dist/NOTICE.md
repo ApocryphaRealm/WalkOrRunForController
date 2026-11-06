@@ -1,4 +1,4 @@
-# Movement Speed Slider - copyright and licence
+# Walk or Run for Controller - copyright and licence
 
 Copyright (C) 2026 ApocryphaRealm
 

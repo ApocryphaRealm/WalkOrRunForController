@@ -1,4 +1,4 @@
-# MovementSpeedSlider - changelog
+# Walk or Run for Controller - changelog
 
 Written as changes happen, not reconstructed afterwards (rule 61). Each version carries its
 **version-ledger status**, so this file cannot quietly claim more than the ledger does:
@@ -21,4 +21,5 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 ### Fixed
 - On Walk, holding the Sprint button sprints; let go and you walk again. The game's own sprint test needs the player at or above a point between walk and run speed, so from a walk the flag it set was cleared the next frame (read from the 1.5.97 code, 0x6B8F20 and 0x5D1190). On Walk the mod's hook on the Sprint handler holds that flag and answers yes to is-running while the button is down. The handler is reached through the control map, so a button Unbind Vanilla Controls moved Sprint to works. On Run nothing changes.
 ### Changed
+- Named Walk or Run for Controller (the owner, 2026-11-06), before its first release; it was built as Movement Speed Slider. The DLL, INI, log and translation files keep the MovementSpeedSlider name, so an installed copy keeps its settings. tools/make_translations.py now holds the Run Speed and Walk Speed rows the eleven shipped files carry.
 - Run and Walk keep separate speeds (the owner, 2026-11-05). The slider is named Run Speed or Walk Speed and shows and edits the selected Default Motion's value; switching brings the other's back at once. INI iRunSpeedPercent and iWalkSpeedPercent; an old iSpeedPercent starts both and its line goes at the next save. Sprint uses the Run value, also while Sprint is held on Walk. New text in eleven languages. DevBench: runPercent, walkPercent, appliedPercent, sprintHeld, sprintEvents.

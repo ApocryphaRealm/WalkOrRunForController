@@ -1,6 +1,6 @@
 # Third-party components and their notices
 
-Movement Speed Slider as a whole is GPL-3.0-or-later (`LICENSE`, `NOTICE.md`). These components are included under their own
+Walk or Run for Controller as a whole is GPL-3.0-or-later (`LICENSE`, `NOTICE.md`). These components are included under their own
 GPL-compatible licences; their notices are reproduced as those licences require.
 
 ## CommonLibSSE-NG 7.2.0 - Skyrim 1.7.x build line

@@ -1,4 +1,7 @@
-# Movement Speed Slider
+# Walk or Run for Controller
+
+Choose whether you walk or run by default, on a controller too, and set your speed with a slider. Both sit in the game's own
+Gameplay settings.
 
 A slider in the game's own menu (Journal, System, Settings, Gameplay, beneath Difficulty) that sets your movement speed, 25% to 150%,
 one percent per press. It is kept in the mod's INI, never in your save, and holds across saves, new games and restarts, as the game's

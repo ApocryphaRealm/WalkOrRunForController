@@ -1,5 +1,7 @@
-Movement Speed Slider
+Walk or Run for Controller
 Version 1.0.0
+
+Choose whether you walk or run by default, on a controller too, and set your speed with a slider. Both sit in the game's own Gameplay settings.
 
 A slider in the game's own menu that sets your movement speed. Journal, System, Settings, Gameplay, beneath Difficulty.
 

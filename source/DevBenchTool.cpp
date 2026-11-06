@@ -84,7 +84,7 @@ namespace DevBenchTool
 		}
 		constexpr const char* descriptor =
 			"{"
-			"\"description\":\"Movement Speed Slider live state and driver. op=state (default): percent, hook installed and read count, SpeedMult base and applied at the latest read, the player's movement speed sampled at the previous call, the row in the journal's list. op=set value=25..150: sets the percent as the slider would, saves the INI. op=motion value=walk|run: sets Default Motion as its row would.\","
+			"\"description\":\"Walk or Run for Controller live state and driver. op=state (default): percent, hook installed and read count, SpeedMult base and applied at the latest read, the player's movement speed sampled at the previous call, the row in the journal's list. op=set value=25..150: sets the percent as the slider would, saves the INI. op=motion value=walk|run: sets Default Motion as its row would.\","
 			"\"inputSchema\":{\"type\":\"object\",\"properties\":{\"op\":{\"type\":\"string\"},\"value\":{\"type\":\"number\"}}},"
 			"\"readOnly\":false"
 			"}";

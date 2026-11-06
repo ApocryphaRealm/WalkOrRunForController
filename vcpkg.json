@@ -1,7 +1,7 @@
 {
     "name": "movementspeedslider",
     "version-string": "1.0.0",
-    "description": "Movement Speed Slider - a slider among the game's Gameplay settings that sets the player's movement speed",
+    "description": "Walk or Run for Controller - a slider among the game's Gameplay settings that sets the player's movement speed",
     "homepage": "https://github.com/ApocryphaRealm/MovementSpeedSlider",
     "license": "GPL-3.0-or-later",
     "dependencies": [

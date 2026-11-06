@@ -1,4 +1,4 @@
-// Movement Speed Slider - own code, GPL-3.0-or-later. A slider among the game's own Gameplay settings that sets the player's movement
+// Walk or Run for Controller - own code, GPL-3.0-or-later. A slider among the game's own Gameplay settings that sets the player's movement
 // speed, kept in the mod's INI and never in the save. See the heads of source/Row.cpp and source/Speed.cpp.
 #include "PCH.h"
 
@@ -47,13 +47,13 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 	SKSE::log::init("MovementSpeedSlider");
 	// Address Library pre-check, BEFORE SKSE::Init, which opens the Address Library itself: a missing file gets a message
 	// naming it and the plugin loads inert instead of CommonLibSSE-NG's bare failure line.
-	if (!AddressLibraryGuard::Guard("Movement Speed Slider")) { return true; }
+	if (!AddressLibraryGuard::Guard("Walk or Run for Controller")) { return true; }
 	SKSE::Init(a_skse);
 
 	settings::Load();
 	settings::ApplyLogLevel();
 	SKSE::log::describe_level("MovementSpeedSlider.ini");
-	logger::info("Movement Speed Slider {} loading", SKSE::PluginDeclaration::GetSingleton()->GetVersion().string("."));
+	logger::info("Walk or Run for Controller {} loading", SKSE::PluginDeclaration::GetSingleton()->GetVersion().string("."));
 
 	auto* messaging = SKSE::GetMessagingInterface();
 	if (!messaging || !messaging->RegisterListener(MessageHandler))

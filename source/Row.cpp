@@ -1,4 +1,4 @@
-// Movement Speed Slider - own code, GPL-3.0-or-later.
+// Walk or Run for Controller - own code, GPL-3.0-or-later.
 //
 // THE ROW. The journal's System page builds its Gameplay list in ActionScript: onSettingsCategoryPress gives the list an array of
 // {text, movieType} objects, the game's RequestGameplayOptions fills in ID and value, rows left without an ID are removed, and the

@@ -1,4 +1,4 @@
-// Movement Speed Slider - own code, GPL-3.0-or-later.
+// Walk or Run for Controller - own code, GPL-3.0-or-later.
 //
 // HOW THE SPEED IS APPLIED. The game's movement code reads the player's SpeedMult through the ActorValueOwner vtable: in the 1.5.97
 // dump the movement readers (the functions at 0x5D67F0 [id 36355] and 0x60EEF0 [id 37013], and the one holding 0x5ED81A) all do

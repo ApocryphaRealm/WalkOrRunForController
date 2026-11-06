@@ -1,4 +1,4 @@
-// Movement Speed Slider - own code, GPL-3.0-or-later.
+// Walk or Run for Controller - own code, GPL-3.0-or-later.
 //
 // DEFAULT MOTION: RUN OR WALK. The game chooses its walk or run speed in one small function, PlayerControls "is running" (1.5.97 id 41264
 // at 0x7051F0; AE and 1.7 id 42343), called from the two places that pick the speed (0x6FBCF2 and 0x6FF83E in 1.5.97):
