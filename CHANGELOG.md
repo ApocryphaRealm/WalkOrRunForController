@@ -8,7 +8,7 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 * **failed** - built but crashed or malfunctioned; the number was reclaimed
 * **scratch** - a hypothesis-test build that never held a real number
 
-## 1.0.0 - 2026-11-04 - untested
+## 1.0.0 - 2026-11-04 - working
 
 ### Added
 - Default Motion, a second row beneath the slider: Run or Walk, default Run (nothing changes). On Walk the player walks with the real walk speed and animation, on a controller too; the Sprint button still sprints. Kept in the INI (bWalkByDefault), never in the save. msp.control op=motion.
