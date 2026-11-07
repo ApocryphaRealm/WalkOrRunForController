@@ -9,6 +9,7 @@
 #include "Speed.h"
 #include "utils/Logger.h"
 
+#include <algorithm>
 #include <format>
 #include <string>
 #include <string_view>
@@ -40,6 +41,8 @@ namespace DevBenchTool
 			return out;
 		}
 
+		constexpr const char* kMotionNames[]{ "run", "walk", "runaftersprint", "sheathed" };
+
 		void ControlTool(void*, const char* a_args, void* a_sink, DevBenchAPI::WriteFn a_write)
 		{
 			const std::string_view args = a_args ? a_args : "";
@@ -53,9 +56,11 @@ namespace DevBenchTool
 			else if (op == "motion")
 			{
 				const std::string value = Get(args, "value");
-				if (value == "walk") { motion::SetWalk(true); }
-				else if (value == "run") { motion::SetWalk(false); }
-				else { ok = "false,\"error\":\"value is walk or run\""; }
+				if (value == "run" || value == "0") { motion::SetMotion(settings::kRun); }
+				else if (value == "walk" || value == "1") { motion::SetMotion(settings::kWalk); }
+				else if (value == "runaftersprint" || value == "2") { motion::SetMotion(settings::kWalkRunAfterSprint); }
+				else if (value == "sheathed" || value == "3") { motion::SetMotion(settings::kWalkSheathed); }
+				else { ok = "false,\"error\":\"value is run, walk, runaftersprint or sheathed (0 to 3)\""; }
 			}
 			else if (!op.empty() && op != "state") { ok = "false,\"error\":\"op is state, set or motion\""; }
 
@@ -64,10 +69,11 @@ namespace DevBenchTool
 			const auto state = row::GetState();
 			const auto gait = motion::GetStats();
 			const std::string out = std::format(
-				R"({{"ok":{},"op":"{}","percent":{},"hookInstalled":{},"hookCount":{},"speedMultBase":{},"speedMultApplied":{},"movementSpeed":{},"rowPresent":{},"rowIndex":{},"rowClip":{},"listEntries":{},"entryValue":{},"listPath":"{}","defaultMotion":"{}","motionRowPresent":{},"motionRowIndex":{},"gaitHookInstalled":{},"gaitCalls":{},"lastAnswerRun":{},"gamepadEnabled":{},"runFlag":{},"runPercent":{},"walkPercent":{},"appliedPercent":{},"sprintHeld":{},"sprintEvents":{}}})",
+				R"({{"ok":{},"op":"{}","percent":{},"hookInstalled":{},"hookCount":{},"speedMultBase":{},"speedMultApplied":{},"movementSpeed":{},"rowPresent":{},"rowIndex":{},"rowClip":{},"listEntries":{},"entryValue":{},"listPath":"{}","defaultMotion":"{}","motionRowPresent":{},"motionRowIndex":{},"gaitHookInstalled":{},"gaitCalls":{},"lastAnswerRun":{},"gamepadEnabled":{},"runFlag":{},"runPercent":{},"walkPercent":{},"appliedPercent":{},"sprintHeld":{},"sprintEvents":{},"motionValue":{},"weaponDrawn":{},"walksNow":{}}})",
 				ok, op.empty() ? "state" : op, settings::SelectedPercent(), stats.installed, stats.hookCount, stats.lastBase, stats.lastApplied, stats.movementSpeed,
-				state.present, state.index, state.clip, state.entries, state.entryValue, state.listPath, settings::walkByDefault.load() ? "walk" : "run", state.motionPresent, state.motionIndex,
-				gait.installed, gait.calls, gait.lastAnswer, gait.gamepadEnabled, gait.runFlag, settings::runPercent.load(), settings::walkPercent.load(), stats.appliedPercent, gait.sprintHeld, gait.sprintEvents);
+				state.present, state.index, state.clip, state.entries, state.entryValue, state.listPath, kMotionNames[std::clamp(settings::MotionValue(), 0, settings::kMotionMax)], state.motionPresent, state.motionIndex,
+				gait.installed, gait.calls, gait.lastAnswer, gait.gamepadEnabled, gait.runFlag, settings::runPercent.load(), settings::walkPercent.load(), stats.appliedPercent, gait.sprintHeld, gait.sprintEvents,
+				settings::MotionValue(), settings::weaponDrawn.load(), settings::WalksNow());
 			a_write(a_sink, out.c_str());
 		}
 	}

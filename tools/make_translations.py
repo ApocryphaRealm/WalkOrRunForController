@@ -11,6 +11,8 @@ T = {
 "MSP_Motion": ["Default Motion", "默认移动方式", "Výchozí pohyb", "Déplacement par défaut", "Standardbewegung", "Movimento predefinito", "標準の移動", "기본 이동", "Domyślny ruch", "Движение по умолчанию", "Movimiento predeterminado"],
 "MSP_Run": ["Run", "奔跑", "Běh", "Course", "Rennen", "Corsa", "走る", "달리기", "Bieg", "Бег", "Correr"],
 "MSP_Walk": ["Walk", "行走", "Chůze", "Marche", "Gehen", "Camminata", "歩く", "걷기", "Chód", "Ходьба", "Caminar"],
+"MSP_WalkRunAfterSprint": ["Walk, run after sprint", "步行，冲刺后奔跑", "Chůze, běh po sprintu", "Marcher, courir après un sprint", "Gehen, nach dem Sprinten laufen", "Camminare, correre dopo lo scatto", "歩き (ダッシュ後は走る)", "걷기, 질주 후 달리기", "Chód, bieg po sprincie", "Шаг, бег после спринта", "Caminar, correr tras esprintar"],
+"MSP_WalkSheathed": ["Walk sheathed, run drawn", "收起武器时行走，拔出时奔跑", "Chůze se zasunutou zbraní, běh s tasenou", "Marche arme rangée, course arme dégainée", "Gehen mit weggesteckter Waffe, Rennen mit gezogener", "Cammina ad armi riposte, corri ad armi sguainate", "納刀時は歩き、抜刀時は走る", "무기를 넣으면 걷기, 꺼내면 달리기", "Chód ze schowaną bronią, bieg z dobytą", "Шаг с убранным оружием, бег с обнажённым", "Caminar con el arma enfundada, correr con ella desenfundada"],
 }
 
 root = pathlib.Path(__file__).resolve().parent.parent / "dist" / "Interface" / "Translations"

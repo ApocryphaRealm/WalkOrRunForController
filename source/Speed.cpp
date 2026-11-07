@@ -10,6 +10,8 @@
 //
 // WALK AND RUN HAVE THEIR OWN VALUE (the owner, 2026-11-05). The slider shows and edits the selected Default Motion's; choosing the other
 // loads its value at once. Sprint has no value of its own: the same read scales it, and it uses Run's, also while Sprint is held on Walk.
+// On Walk sheathed, run drawn (1.2.0) the value in force follows the weapon: Walk's while sheathed, Run's while drawn, and the slider
+// edits that one.
 //
 // The game holds on to a computed speed until something makes it recompute. Changing CarryWeight makes it do so (Walk Speed Tuner and
 // Dynamic Speed Controller use this). Refresh raises the temporary CarryWeight modifier by a little and takes it back in the same
@@ -39,7 +41,7 @@ namespace speed
 
 		int CurrentPercent()
 		{
-			return settings::walkByDefault.load() && !motion::SprintHeld() ? settings::walkPercent.load() : settings::runPercent.load();
+			return settings::WalksNow() && !motion::SprintHeld() ? settings::walkPercent.load() : settings::runPercent.load();
 		}
 
 		using GetActorValue_t = float (*)(RE::ActorValueOwner*, RE::ActorValue);
@@ -114,7 +116,7 @@ namespace speed
 	void SetPercent(int a_percent)
 	{
 		const int percent = std::clamp(a_percent, settings::kPercentMin, settings::kPercentMax);
-		const bool walk = settings::walkByDefault.load();
+		const bool walk = settings::WalksNow();
 		const int before = (walk ? settings::walkPercent : settings::runPercent).exchange(percent);
 		if (before == percent) { return; }
 		logger::info("speed: {} {}% -> {}%", walk ? "Walk" : "Run", before, percent);

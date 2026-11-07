@@ -14,8 +14,7 @@ namespace settings
 		static constexpr std::uint32_t logLevel = 2;
 		static constexpr int runPercent = 100;
 		static constexpr int walkPercent = 100;
-		static constexpr bool walkByDefault = false;
-		static constexpr bool runAfterSprint = false;
+		static constexpr int defaultMotion = 0;  // Run
 	};
 
 	inline constexpr int kPercentMin = 25;
@@ -24,14 +23,27 @@ namespace settings
 	inline std::atomic<std::uint32_t> logLevel{ Defaults::logLevel };
 	inline std::atomic<int> runPercent{ Defaults::runPercent };    // iRunSpeedPercent:General - the slider while Default Motion is Run
 	inline std::atomic<int> walkPercent{ Defaults::walkPercent };  // iWalkSpeedPercent:General - the slider while Default Motion is Walk
-	inline std::atomic<bool> walkByDefault{ Defaults::walkByDefault };  // bWalkByDefault:General - the Default Motion row
-	inline std::atomic<bool> runAfterSprint{ Defaults::runAfterSprint };  // bRunAfterSprint:General - on Walk, a sprint ends in a run until the player stops
+	// The Default Motion row's value, iDefaultMotion:General (1.2.0; it replaced bWalkByDefault and bRunAfterSprint, which an old INI
+	// still starts it from): 0 Run, 1 Walk, 2 Walk with a run after each sprint, 3 Walk while sheathed and run while drawn.
+	enum Motion : int { kRun = 0, kWalk = 1, kWalkRunAfterSprint = 2, kWalkSheathed = 3 };
+	inline constexpr int kMotionMax = kWalkSheathed;
+	inline std::atomic<int> defaultMotion{ Defaults::defaultMotion };
+	// The player's weapon or magic is out (fists too), as the motion hook last read it. Only choice 3 looks at it.
+	inline std::atomic<bool> weaponDrawn{ false };
 
-	// The Default Motion row's value: 0 Run, 1 Walk, 2 Walk with a run after each sprint.
-	inline int MotionValue() { return walkByDefault.load() ? (runAfterSprint.load() ? 2 : 1) : 0; }
+	inline int MotionValue() { return defaultMotion.load(); }
+	// Any of the walking choices: the Sprint handler hook works and the game's run flag is held off.
+	inline bool WalkFamily() { return defaultMotion.load() != kRun; }
+	inline bool RunAfterSprint() { return defaultMotion.load() == kWalkRunAfterSprint; }
+	// The player walks now when nothing is held: Walk, Walk-run-after-sprint, or the sheathed half of choice 3.
+	inline bool WalksNow()
+	{
+		const int m = defaultMotion.load();
+		return m == kWalk || m == kWalkRunAfterSprint || (m == kWalkSheathed && !weaponDrawn.load());
+	}
 
-	// The value the slider shows and edits: the selected Default Motion's.
-	inline int SelectedPercent() { return walkByDefault.load() ? walkPercent.load() : runPercent.load(); }
+	// The value the slider shows and edits: the one in force now, Walk's or Run's.
+	inline int SelectedPercent() { return WalksNow() ? walkPercent.load() : runPercent.load(); }
 
 	void Load();  // at plugin load; a missing INI or line keeps the default
 	bool Save();  // every value, keeping the file's comments; false when the file cannot be written. Any thread.

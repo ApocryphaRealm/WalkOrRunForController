@@ -60,7 +60,7 @@ namespace row
 		State g_state;  // g_lock
 
 		int g_entryPercent = -1;  // main thread: the percent last seen in our object; another value there means the player moved it
-		int g_entryWalk = -1;     // main thread: the same for Default Motion: 0 Run, 1 Walk
+		int g_entryWalk = -1;     // main thread: the same for Default Motion: 0 to settings::kMotionMax
 		int g_rowTextWalk = -1;   // main thread: which of the two the row's name last said
 
 		double ValueOf(int a_percent) { return static_cast<double>(a_percent - settings::kPercentMin) / 20.0; }
@@ -73,7 +73,7 @@ namespace row
 		// Names which value it is editing: the selected Default Motion's.
 		std::string RowText(int a_percent)
 		{
-			return std::format("{} {}%", settings::walkByDefault.load() ? TR("MSP_RowWalk", "Walk Speed") : TR("MSP_RowRun", "Run Speed"), a_percent);
+			return std::format("{} {}%", settings::WalksNow() ? TR("MSP_RowWalk", "Walk Speed") : TR("MSP_RowRun", "Run Speed"), a_percent);
 		}
 
 		void Publish(State a_state)
@@ -106,7 +106,7 @@ namespace row
 		{
 			const int percent = settings::SelectedPercent();
 			const std::string text = RowText(percent);
-			g_rowTextWalk = settings::walkByDefault.load() ? 1 : 0;
+			g_rowTextWalk = settings::WalksNow() ? 1 : 0;
 			RE::GFxValue entry;
 			a_movie->CreateObject(&entry);
 			if (!entry.IsObject())
@@ -134,11 +134,12 @@ namespace row
 		// Default Motion: the game's own option stepper, the kind Difficulty uses. Value 0 is Run, 1 is Walk.
 		void InsertMotionRow(RE::GFxMovieView* a_movie, RE::GFxValue& a_entries, const std::string& a_listPath, std::uint32_t a_afterIndex)
 		{
-			const bool walk = settings::walkByDefault.load();
+			const int motionValue = settings::MotionValue();
 			const std::string text = TR("MSP_Motion", "Default Motion");
 			const std::string run = TR("MSP_Run", "Run");
 			const std::string walking = TR("MSP_Walk", "Walk");
 			const std::string walkRun = TR("MSP_WalkRunAfterSprint", "Walk, run after sprint");
+			const std::string walkSheathed = TR("MSP_WalkSheathed", "Walk sheathed, run drawn");
 			RE::GFxValue entry;
 			RE::GFxValue options;
 			a_movie->CreateObject(&entry);
@@ -151,12 +152,13 @@ namespace row
 			options.PushBack(RE::GFxValue(run.c_str()));
 			options.PushBack(RE::GFxValue(walking.c_str()));
 			options.PushBack(RE::GFxValue(walkRun.c_str()));
+			options.PushBack(RE::GFxValue(walkSheathed.c_str()));
 			entry.SetMember("text", RE::GFxValue(text.c_str()));
 			entry.SetMember("movieType", RE::GFxValue(1.0));
 			entry.SetMember("options", options);
 			entry.SetMember("ID", RE::GFxValue(kMotionId));
 			entry.SetMember("value", RE::GFxValue(static_cast<double>(settings::MotionValue())));
-			entry.SetMember("defaultVal", RE::GFxValue(settings::Defaults::walkByDefault ? 1.0 : 0.0));
+			entry.SetMember("defaultVal", RE::GFxValue(static_cast<double>(settings::Defaults::defaultMotion)));
 
 			std::array<RE::GFxValue, 3> args{ RE::GFxValue(static_cast<double>(a_afterIndex + 1)), RE::GFxValue(0.0), entry };
 			if (!a_entries.Invoke("splice", nullptr, args.data(), args.size()))
@@ -166,7 +168,7 @@ namespace row
 			}
 			g_entryWalk = settings::MotionValue();
 			a_movie->Invoke((a_listPath + ".InvalidateData").c_str(), nullptr, nullptr, 0);
-			logger::info("row: Default Motion added beneath the slider (row {}), {}", a_afterIndex + 1, walk ? "Walk" : "Run");
+			logger::info("row: Default Motion added beneath the slider (row {}), choice {}", a_afterIndex + 1, motionValue);
 		}
 
 		void SetScrollRange(RE::GFxMovieView* a_movie, const std::string& a_clipPath, double a_pageSize, double a_max)
@@ -329,7 +331,7 @@ namespace row
 				g_entryPercent = percent;
 				changed = true;
 			}
-			if (const int selected = settings::walkByDefault.load() ? 1 : 0; selected != g_rowTextWalk)  // the name, even where the two values match
+			if (const int selected = settings::WalksNow() ? 1 : 0; selected != g_rowTextWalk)  // the name, even where the two values match
 			{
 				g_rowTextWalk = selected;
 				changed = true;
@@ -341,7 +343,7 @@ namespace row
 			RE::GFxValue motionValue;
 			bool motionChanged = false;
 			int entryWalk = settings::MotionValue();
-			if (EntryMember(motionEntry, "value", motionValue) && motionValue.IsNumber()) { entryWalk = std::clamp(static_cast<int>(std::lround(motionValue.GetNumber())), 0, 2); }
+			if (EntryMember(motionEntry, "value", motionValue) && motionValue.IsNumber()) { entryWalk = std::clamp(static_cast<int>(std::lround(motionValue.GetNumber())), 0, settings::kMotionMax); }
 			if (entryWalk != g_entryWalk)
 			{
 				g_entryWalk = entryWalk;

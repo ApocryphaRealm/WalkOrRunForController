@@ -29,6 +29,12 @@
 // Default Motion's third choice. On Walk, letting go of Sprint leaves the is-running answer at yes while the move stick or keys still
 // push; the first ask that finds no move input ends it, and the walk answer comes back. The run speed's value stays in force meanwhile.
 //
+// WALK SHEATHED, RUN DRAWN (a Nexus request, 2026-11-07: "walk when sheathed and run when unsheathed/drawn weapon"). Default Motion's
+// fourth choice. Each ask reads the player's weapon state (ActorState weaponState at or past Drawn: a weapon, a spell or fists): drawn
+// answers run, sheathed is Walk exactly. The Sprint handler works as on Walk in both states. The speed in force follows: Walk's value
+// sheathed, Run's drawn, switched the first ask after the state changes. A mod that draws the weapon for you (Auto Draw) needs nothing
+// more: drawn is drawn, however it came about.
+//
 // Nothing is stored in the save. The setting is in the mod's INI; data.running is set again at every load and new game.
 #include "PCH.h"
 
@@ -38,6 +44,7 @@
 #include "Speed.h"
 #include "utils/Logger.h"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -70,7 +77,7 @@ namespace motion
 		{
 			if (g_sprintHeld.exchange(a_held) == a_held) { return; }
 			if (!a_held) { SetSprintFlag(false); }
-			const bool carry = !a_held && settings::runAfterSprint.load(std::memory_order_relaxed);
+			const bool carry = !a_held && settings::RunAfterSprint();
 			if (g_carryRun.exchange(carry) != carry && carry) { logger::debug("motion: Sprint let go; running until the player stops"); }
 			logger::debug("motion: Sprint {} on Walk", a_held ? "held" : "let go");
 			speed::ApplyCurrent();
@@ -81,7 +88,7 @@ namespace motion
 			static void ProcessButton(RE::SprintHandler* a_this, RE::ButtonEvent* a_event, RE::PlayerControlsData* a_data)
 			{
 				original(a_this, a_event, a_data);
-				if (!a_event || !settings::walkByDefault.load(std::memory_order_relaxed)) { return; }
+				if (!a_event || !settings::WalkFamily()) { return; }
 				g_sprintEvents.fetch_add(1, std::memory_order_relaxed);
 				const bool down = a_event->Value() != 0.0f;
 				if (down)
@@ -113,7 +120,7 @@ namespace motion
 		bool CarryRun(RE::PlayerControls* a_controls)
 		{
 			if (!g_carryRun.load(std::memory_order_relaxed)) { return false; }
-			if (a_controls && settings::runAfterSprint.load(std::memory_order_relaxed))
+			if (a_controls && settings::RunAfterSprint())
 			{
 				const auto& move = a_controls->data.moveInputVec;
 				if (move.x * move.x + move.y * move.y > 0.01f) { return true; }
@@ -124,11 +131,27 @@ namespace motion
 			return false;
 		}
 
+		// Choice 3: the player's weapon state, read at each ask; a change switches the speed in force and the slider's name.
+		void UpdateDrawn()
+		{
+			if (settings::MotionValue() != settings::kWalkSheathed) { return; }
+			auto* player = RE::PlayerCharacter::GetSingleton();
+			auto* state = player ? player->AsActorState() : nullptr;
+			const bool drawn = state && state->IsWeaponDrawn();
+			if (settings::weaponDrawn.exchange(drawn) == drawn) { return; }
+			logger::debug("motion: weapon {}; {}", drawn ? "drawn" : "sheathed", drawn ? "running" : "walking");
+			speed::ApplyCurrent();
+		}
+
 		bool IsRunningHook(RE::PlayerControls* a_controls)
 		{
+			UpdateDrawn();
+			const int choice = settings::MotionValue();
 			bool answer = false;
-			if (settings::walkByDefault.load(std::memory_order_relaxed) && (SprintHeldFresh() || CarryRun(a_controls))) { answer = true; }
-			else if (GamepadEnabled()) { answer = !settings::walkByDefault.load(std::memory_order_relaxed); }
+			if (choice != settings::kRun && (SprintHeldFresh() || CarryRun(a_controls))) { answer = true; }
+			else if (choice == settings::kRun) { answer = GamepadEnabled() || (a_controls && a_controls->data.running); }
+			else if (!settings::WalksNow()) { answer = true; }  // choice 3, drawn
+			else if (GamepadEnabled()) { answer = false; }
 			else { answer = a_controls && a_controls->data.running; }
 			g_calls.fetch_add(1, std::memory_order_relaxed);
 			g_lastAnswer.store(answer, std::memory_order_relaxed);
@@ -163,40 +186,32 @@ namespace motion
 		REL::Relocation<std::uintptr_t> sprintVtable{ RE::VTABLE_SprintHandler[0] };
 		SprintHandlerHook::original = sprintVtable.write_vfunc(4, SprintHandlerHook::ProcessButton);
 		g_installed = true;
-		logger::info("motion: hook on PlayerControls's is-running test at {:X}; {}", target.address(), settings::walkByDefault.load() ? "Walk" : "Run");
+		logger::info("motion: hook on PlayerControls's is-running test at {:X}; Default Motion {}", target.address(), settings::MotionValue());
 	}
 
 	void ApplyOnLoad()
 	{
-		if (!settings::walkByDefault.load()) { return; }  // Run: the game's own flag stays as the game set it
+		if (!settings::WalkFamily()) { return; }  // Run: the game's own flag stays as the game set it
 		SetRunFlag(false);
-		logger::debug("motion: Walk: the run flag is off");
-	}
-
-	void SetWalk(bool a_walk)
-	{
-		const bool before = settings::walkByDefault.exchange(a_walk);
-		if (before == a_walk) { return; }
-		logger::info("motion: {} -> {}; the slider now holds the {} value, {}%", before ? "Walk" : "Run", a_walk ? "Walk" : "Run", a_walk ? "Walk" : "Run", settings::SelectedPercent());
-		settings::Save();
-		speed::ApplyCurrent();
-		if (auto* tasks = SKSE::GetTaskInterface())
-		{
-			tasks->AddTask([a_walk] { SetRunFlag(!a_walk); });
-		}
+		logger::debug("motion: a walking choice: the run flag is off");
 	}
 
 	void SetMotion(int a_value)
 	{
-		const bool walk = a_value >= 1;
-		const bool carry = a_value == 2;
-		if (!carry) { g_carryRun.store(false); }
-		if (settings::runAfterSprint.exchange(carry) != carry)
+		const int value = std::clamp(a_value, 0, static_cast<int>(settings::kMotionMax));
+		const int before = settings::defaultMotion.exchange(value);
+		if (before == value) { return; }
+		if (value != settings::kWalkRunAfterSprint) { g_carryRun.store(false); }
+		if (value != settings::kWalkSheathed) { settings::weaponDrawn.store(false); }
+		else if (auto* tasks = SKSE::GetTaskInterface()) { tasks->AddTask([] { UpdateDrawn(); }); }
+		logger::info("motion: Default Motion {} -> {}; the slider now holds the {} value, {}%", before, value, settings::WalksNow() ? "Walk" : "Run", settings::SelectedPercent());
+		settings::Save();
+		speed::ApplyCurrent();
+		const bool walkFamily = value != settings::kRun;
+		if (auto* tasks = SKSE::GetTaskInterface())
 		{
-			logger::info("motion: run after sprint {}", carry ? "on" : "off");
-			if (walk == settings::walkByDefault.load()) { settings::Save(); }  // SetWalk saves when Walk itself changes
+			tasks->AddTask([walkFamily] { SetRunFlag(!walkFamily); });
 		}
-		SetWalk(walk);
 	}
 
 	bool SprintHeld() { return g_sprintHeld.load(std::memory_order_relaxed) || g_carryRun.load(std::memory_order_relaxed); }

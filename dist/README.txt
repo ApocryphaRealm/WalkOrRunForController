@@ -10,7 +10,7 @@ A slider in the game's own menu that sets your movement speed. Journal, System, 
 It is kept in the mod's INI, never in your save, and stays where you left it across saves, new games and restarts, as the game's own settings do. Remove the mod and any save walks at the normal speed.
 
 DEFAULT MOTION
-Beneath the slider: Run or Walk, default Run. On Walk you walk with the real walk animation and speed, on a controller too, and sprint for as long as you hold the Sprint button, whichever button it is mapped to. Run and Walk each keep their own speed: the slider is named Run Speed or Walk Speed and shows the selected one's, and switching brings back the other's at once. Sprint uses the Run value. A horse walks as well, as it does on a keyboard with run off. Kept in the INI, never in your save.
+Beneath the slider: Run, Walk, Walk, run after sprint, or Walk sheathed, run drawn; default Run. On Walk you walk with the real walk animation and speed, on a controller too, and sprint for as long as you hold the Sprint button, whichever button it is mapped to. Run and Walk each keep their own speed: the slider is named Run Speed or Walk Speed and shows the selected one's, and switching brings back the other's at once. Sprint uses the Run value. A horse walks as well, as it does on a keyboard with run off. Walk, run after sprint: letting go of Sprint keeps you running until you stop moving. Walk sheathed, run drawn: you walk while your weapon or magic is put away and run while it is out (fists too), with the Walk speed sheathed and the Run speed drawn. Kept in the INI (iDefaultMotion), never in your save.
 
 REQUIRES
 SKSE and Address Library for SKSE Plugins. Skyrim SE 1.5.97, AE 1.6.1170, or 1.7.99 / 1.7.104.

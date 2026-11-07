@@ -7,8 +7,7 @@ namespace motion
 {
 	void Install();           // at kDataLoaded
 	void ApplyOnLoad();       // at every load and new game
-	void SetWalk(bool a_walk);  // any thread: applies at once, saves the INI
-	void SetMotion(int a_value);  // the Default Motion row: 0 Run, 1 Walk, 2 Walk with a run after each sprint
+	void SetMotion(int a_value);  // any thread: the Default Motion row, 0 to settings::kMotionMax; applies at once, saves the INI
 	bool SprintHeld();          // on Walk: the player's Sprint button is down now, or a run after a sprint is going on
 
 	struct Stats

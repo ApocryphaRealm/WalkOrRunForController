@@ -117,8 +117,7 @@ namespace settings
 		logLevel = Defaults::logLevel;
 		runPercent = Defaults::runPercent;
 		walkPercent = Defaults::walkPercent;
-		walkByDefault = Defaults::walkByDefault;
-		runAfterSprint = Defaults::runAfterSprint;
+		defaultMotion = Defaults::defaultMotion;
 		if (!std::filesystem::exists(g_iniPath))
 		{
 			logger::warn("{} is not there; the compiled defaults are in force", g_iniPath);
@@ -149,20 +148,30 @@ namespace settings
 		}
 		readPercent("iRunSpeedPercent", runPercent);
 		readPercent("iWalkSpeedPercent", walkPercent);
+		// Before 1.2.0 Default Motion was two lines, bWalkByDefault and bRunAfterSprint. They start iDefaultMotion when it is not there;
+		// the next save writes iDefaultMotion and drops them.
 		const auto walk = k.find("bwalkbydefault:general");
-		if (walk != k.end())
-		{
-			if (walk->second == "1") { walkByDefault = true; }
-			else if (walk->second != "0") { logger::warn("INI bWalkByDefault: \"{}\" is not 0 or 1; the default stays", walk->second); }
-		}
 		const auto carry = k.find("brunaftersprint:general");
-		if (carry != k.end())
+		if (walk != k.end() && walk->second == "1")
 		{
-			if (carry->second == "1") { runAfterSprint = true; }
-			else if (carry->second != "0") { logger::warn("INI bRunAfterSprint: \"{}\" is not 0 or 1; the default stays", carry->second); }
+			defaultMotion = carry != k.end() && carry->second == "1" ? kWalkRunAfterSprint : kWalk;
+			logger::info("settings: bWalkByDefault/bRunAfterSprint are now iDefaultMotion={}", defaultMotion.load());
 		}
-		logger::info("settings: {} read: run speed {}%, walk speed {}%, default motion {}{}", g_iniPath, runPercent.load(), walkPercent.load(), walkByDefault.load() ? "Walk" : "Run",
-			runAfterSprint.load() ? ", run after sprint" : "");
+		const auto motionKey = k.find("idefaultmotion:general");
+		if (motionKey != k.end())
+		{
+			try
+			{
+				const int v = std::stoi(motionKey->second);
+				if (v >= 0 && v <= kMotionMax) { defaultMotion = v; }
+				else { logger::warn("INI iDefaultMotion: {} is not 0 to {}; the default stays", v, kMotionMax); }
+			}
+			catch (...)
+			{
+				logger::warn("INI iDefaultMotion: \"{}\" is not a number; the default stays", motionKey->second);
+			}
+		}
+		logger::info("settings: {} read: run speed {}%, walk speed {}%, default motion {}", g_iniPath, runPercent.load(), walkPercent.load(), defaultMotion.load());
 	}
 
 	bool Save()
@@ -174,8 +183,11 @@ namespace settings
 		std::erase_if(lines, [](const std::string& a_line) { return Lower(Trim(a_line)).starts_with("ispeedpercent"); });
 		WriteKey(lines, "General", "iRunSpeedPercent", std::to_string(runPercent.load()));
 		WriteKey(lines, "General", "iWalkSpeedPercent", std::to_string(walkPercent.load()));
-		WriteKey(lines, "General", "bWalkByDefault", walkByDefault.load() ? "1" : "0");
-		WriteKey(lines, "General", "bRunAfterSprint", runAfterSprint.load() ? "1" : "0");
+		std::erase_if(lines, [](const std::string& a_line) {
+			const auto l = Lower(Trim(a_line));
+			return l.starts_with("bwalkbydefault") || l.starts_with("brunaftersprint");
+		});
+		WriteKey(lines, "General", "iDefaultMotion", std::to_string(defaultMotion.load()));
 		std::ofstream file(g_iniPath, std::ios::trunc);
 		if (!file)
 		{
