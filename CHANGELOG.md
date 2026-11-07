@@ -8,7 +8,7 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 * **failed** - built but crashed or malfunctioned; the number was reclaimed
 * **scratch** - a hypothesis-test build that never held a real number
 
-## 1.2.0 - 2026-11-07 - untested
+## 1.2.0 - 2026-11-07 - working
 
 ### Added
 - Default Motion has a fourth choice, Walk sheathed, run drawn (a Nexus request): you walk while your weapon or magic is put away and run while it is out, fists too, read at each of the game's is-running asks from the player's weapon state. The Sprint button sprints in both, as on Walk. The Walk speed is in force while sheathed and the Run speed while drawn, and the slider names and edits the one in force. A mod that draws the weapon for you, such as Auto Draw, needs nothing more. New text in eleven languages; DevBench msp.control op=motion value=sheathed (also run, walk, runaftersprint, or 0 to 3), and the state reports motionValue, weaponDrawn and walksNow.
