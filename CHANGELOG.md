@@ -8,6 +8,14 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 * **failed** - built but crashed or malfunctioned; the number was reclaimed
 * **scratch** - a hypothesis-test build that never held a real number
 
+## 1.2.1 - 2026-11-08 - untested
+
+### Fixed
+- On Skyrim 1.7.99 / 1.7.104, holding Sprint from a walk now sprints (Walk, Walk run after sprint, and Walk sheathed run drawn while sheathed); before, Sprint only worked while running (a Nexus report). Skyrim 1.7 put two new functions into every player input handler's vtable, so the Sprint button handler moved from slot 4 to slot 6 (read in the 1.7.104 code); CommonLibSSE-NG 7.2 still names slot 4, and the mod's hook sat on an empty function the game never calls. The 1.7 build now hooks slot 6; SE 1.5.97 and AE 1.6.x keep slot 4, unchanged.
+
+### Changed
+- The installer names the first build SE 1.5.97 or AE 1.6.640 - 1.6.1170 (incl. GOG 1.6.1179): the DLL takes every address from Address Library and declares no runtime list, so it already ran on AE 1.6.640 (a player confirmed it). Text only; the DLL for those versions is unchanged.
+
 ## 1.2.0 - 2026-11-07 - working
 
 ### Added

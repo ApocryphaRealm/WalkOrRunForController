@@ -9,8 +9,8 @@
 			<optionalFileGroups order="Explicit">
 				<group name="Game version" type="SelectExactlyOne">
 					<plugins order="Explicit">
-						<plugin name="Skyrim SE 1.5.97 or AE 1.6.1170">
-							<description>For Skyrim Special Edition 1.5.97 and Anniversary Edition 1.6.1170. Built on CommonLibSSE-NG 3.7.0, which reads Address Library formats 1 and 2.</description>
+						<plugin name="Skyrim SE 1.5.97 or AE 1.6.640 - 1.6.1170 (incl. GOG 1.6.1179)">
+							<description>For Skyrim Special Edition 1.5.97 and Anniversary Edition 1.6.640 to 1.6.1170, GOG 1.6.1179 included. The DLL takes every address from Address Library, so it is not tied to one AE release. Built on CommonLibSSE-NG 3.7.0, which reads Address Library formats 1 and 2.</description>
 							<files>
 								<folder source="Line-SE-AE16" destination="" priority="0" />
 							</files>

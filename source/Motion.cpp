@@ -184,7 +184,16 @@ namespace motion
 		SKSE::AllocTrampoline(14);
 		SKSE::GetTrampoline().write_branch<5>(target.address(), &IsRunningHook);
 		REL::Relocation<std::uintptr_t> sprintVtable{ RE::VTABLE_SprintHandler[0] };
-		SprintHandlerHook::original = sprintVtable.write_vfunc(4, SprintHandlerHook::ProcessButton);
+#if RUNTIME_LINE == 17
+		// Skyrim 1.7 put two new functions into every player input handler's vtable at slots 4 and 5 (both `ret 0`), so
+		// ProcessButton moved to slot 6 (read in the 1.7.104 code: SprintHandler slot 6 is the 1.5.97 handler's body, flag at
+		// +0xBED). CommonLibSSE-NG 7.2 still names slot 4; hooking it hooked a function the game never calls, and on 1.7 the
+		// Sprint button did nothing from a walk (a Nexus report, 2026-11-08). SE 1.5.97 and AE 1.6.1170 keep slot 4.
+		constexpr std::size_t kProcessButtonSlot = 6;
+#else
+		constexpr std::size_t kProcessButtonSlot = 4;
+#endif
+		SprintHandlerHook::original = sprintVtable.write_vfunc(kProcessButtonSlot, SprintHandlerHook::ProcessButton);
 		g_installed = true;
 		logger::info("motion: hook on PlayerControls's is-running test at {:X}; Default Motion {}", target.address(), settings::MotionValue());
 	}

@@ -13,7 +13,7 @@ own settings do. On a controller, where you cannot choose to walk, this is how y
 - No plugin, no scripts. Works with any journal that keeps the game's System page: the game's own, SkyUI, Quest Journal Overhaul,
   Norden UI.
 
-Requires SKSE and Address Library. Skyrim SE 1.5.97, AE 1.6.1170, and 1.7.99 / 1.7.104.
+Requires SKSE and Address Library. Skyrim SE 1.5.97, AE 1.6.640 to 1.6.1170 (GOG 1.6.1179 included), and 1.7.99 / 1.7.104.
 
 ## How it works
 
