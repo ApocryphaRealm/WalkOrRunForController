@@ -11,6 +11,7 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 ## 1.2.1 - 2026-11-08 - untested
 
 ### Fixed
+- Walk, run after sprint: the run after a sprint now ends when you stop, also on Skyrim 1.7.104, where in testing it never ended and every later move ran. The stop is now read from the player's own movement state for this frame as well as from the move input, which the game only refreshes when an input event arrives. The run start and the stop are written to the log.
 - On Skyrim 1.7.99 / 1.7.104, holding Sprint from a walk now sprints (Walk, Walk run after sprint, and Walk sheathed run drawn while sheathed); before, Sprint only worked while running (a Nexus report). Skyrim 1.7 put two new functions into every player input handler's vtable, so the Sprint button handler moved from slot 4 to slot 6 (read in the 1.7.104 code); CommonLibSSE-NG 7.2 still names slot 4, and the mod's hook sat on an empty function the game never calls. The 1.7 build now hooks slot 6; SE 1.5.97 and AE 1.6.x keep slot 4, unchanged.
 
 ### Changed

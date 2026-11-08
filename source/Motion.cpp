@@ -78,7 +78,7 @@ namespace motion
 			if (g_sprintHeld.exchange(a_held) == a_held) { return; }
 			if (!a_held) { SetSprintFlag(false); }
 			const bool carry = !a_held && settings::RunAfterSprint();
-			if (g_carryRun.exchange(carry) != carry && carry) { logger::debug("motion: Sprint let go; running until the player stops"); }
+			if (g_carryRun.exchange(carry) != carry && carry) { logger::info("motion: Sprint let go; running until the player stops"); }
 			logger::debug("motion: Sprint {} on Walk", a_held ? "held" : "let go");
 			speed::ApplyCurrent();
 		}
@@ -116,17 +116,36 @@ namespace motion
 			return devices && devices->IsGamepadEnabled();
 		}
 
-		// The run after a sprint lasts while there is move input: the stick or the movement keys.
+		// The player is actually moving: the game's own per-frame direction bits on the player's ActorState (all clear when
+		// he stands). A plain field read - no game function is called from inside the game's speed computation.
+		bool PlayerMoving()
+		{
+			auto* player = RE::PlayerCharacter::GetSingleton();
+			auto* state = player ? player->AsActorState() : nullptr;
+			if (!state) { return true; }  // nothing to read: leave the decision to the input
+			const auto& s1 = state->actorState1;
+			return s1.movingBack || s1.movingForward || s1.movingRight || s1.movingLeft;
+		}
+
+		// The run after a sprint lasts while there is move input (the stick or the movement keys) AND the player is moving.
+		// moveInputVec alone was not enough on Skyrim 1.7.104 (Nexus 1.2.1 test, 2026-11-08): the player stood still with
+		// the carry never ending. Its offset is the same on both (read in the code: data at +0x24, running at +0x49, the
+		// Movement handler writing moveInputVec at data+0), so the layout is not the cause. PlayerControls zeroes
+		// moveInputVec only at the start of an input-event batch (1.5.97 0x704DEA, 1.7.104 0x7AD92C), so it is the last
+		// batch's snapshot, not this frame's; the ActorState bits below are this frame's.
 		bool CarryRun(RE::PlayerControls* a_controls)
 		{
 			if (!g_carryRun.load(std::memory_order_relaxed)) { return false; }
+			bool input = false;
 			if (a_controls && settings::RunAfterSprint())
 			{
 				const auto& move = a_controls->data.moveInputVec;
-				if (move.x * move.x + move.y * move.y > 0.01f) { return true; }
+				input = move.x * move.x + move.y * move.y > 0.01f;
 			}
+			const bool moving = input && PlayerMoving();
+			if (moving) { return true; }
 			g_carryRun.store(false, std::memory_order_relaxed);
-			logger::debug("motion: the player stopped; walking again");
+			logger::info("motion: the player stopped ({}); walking again", input ? "move input left over, ActorState not moving" : "no move input");
 			speed::ApplyCurrent();
 			return false;
 		}
