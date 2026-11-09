@@ -8,7 +8,12 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 * **failed** - built but crashed or malfunctioned; the number was reclaimed
 * **scratch** - a hypothesis-test build that never held a real number
 
-## 1.2.1 - 2026-11-08 - untested
+## 1.2.2 - 2026-11-09 - untested
+
+### Fixed
+- An INI edit made while the game is running now counts from the next save loaded or new game started: the INI is read again at each load when its file changed since the mod last read or wrote it, and the log says so. Before, the INI was read only at startup, and the next change in the menu wrote the old values back over the edit (a Nexus report).
+
+## 1.2.1 - 2026-11-08 - working
 
 ### Fixed
 - Walk, run after sprint: the run after a sprint now ends when you stop, also on Skyrim 1.7.104, where in testing it never ended and every later move ran. The stop is now read from the player's own movement state for this frame as well as from the move input, which the game only refreshes when an input event arrives. The run start and the stop are written to the log.

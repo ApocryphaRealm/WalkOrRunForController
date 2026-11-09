@@ -224,6 +224,17 @@ namespace motion
 		logger::debug("motion: a walking choice: the run flag is off");
 	}
 
+	void OnSettingsReloaded(int a_motionBefore)
+	{
+		const int value = settings::MotionValue();
+		if (value == a_motionBefore) { return; }
+		if (value != settings::kWalkRunAfterSprint) { g_carryRun.store(false); }
+		if (value != settings::kWalkSheathed) { settings::weaponDrawn.store(false); }
+		else { UpdateDrawn(); }
+		SetRunFlag(value == settings::kRun);
+		logger::info("motion: Default Motion {} -> {} from the INI", a_motionBefore, value);
+	}
+
 	void SetMotion(int a_value)
 	{
 		const int value = std::clamp(a_value, 0, static_cast<int>(settings::kMotionMax));

@@ -19,6 +19,16 @@ namespace settings
 	{
 		std::string g_iniPath;
 		std::mutex g_saveLock;
+		// The INI's last-write time as this plugin last read or wrote it. A different time at a game load means the player edited
+		// the file while the game ran (a Nexus report, 2026-11-09: INI edits did nothing); the file is read again then.
+		std::filesystem::file_time_type g_stamp{};
+
+		std::filesystem::file_time_type Stamp()
+		{
+			std::error_code ec;
+			const auto t = std::filesystem::last_write_time(g_iniPath, ec);
+			return ec ? std::filesystem::file_time_type{} : t;
+		}
 
 		std::string Lower(std::string a_text)
 		{
@@ -123,6 +133,7 @@ namespace settings
 			logger::warn("{} is not there; the compiled defaults are in force", g_iniPath);
 			return;
 		}
+		g_stamp = Stamp();
 		const auto k = ReadKeys(g_iniPath);
 		ReadUInt(k, "uloglevel:debug", logLevel);
 		const auto readPercent = [&](const char* a_name, std::atomic<int>& a_out) {
@@ -195,8 +206,22 @@ namespace settings
 			return false;
 		}
 		for (const auto& line : lines) { file << line << '\n'; }
+		file.close();
+		g_stamp = Stamp();
 		logger::debug("settings: {} written", g_iniPath);
-		return static_cast<bool>(file);
+		return !file.fail();
+	}
+
+	bool ReloadIfChanged()
+	{
+		if (g_iniPath.empty()) { return false; }
+		{
+			std::scoped_lock l(g_saveLock);
+			if (Stamp() == g_stamp) { return false; }
+		}
+		logger::info("settings: {} was changed outside the game's menu; reading it again", g_iniPath);
+		Load();
+		return true;
 	}
 
 	const std::string& IniPath() { return g_iniPath; }

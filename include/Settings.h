@@ -47,6 +47,7 @@ namespace settings
 
 	void Load();  // at plugin load; a missing INI or line keeps the default
 	bool Save();  // every value, keeping the file's comments; false when the file cannot be written. Any thread.
+	bool ReloadIfChanged();  // at each game load: the INI read again when it was edited since this plugin last read or wrote it
 	const std::string& IniPath();
 	void ApplyLogLevel();
 }

@@ -31,6 +31,15 @@ namespace
 			break;
 		case SKSE::MessagingInterface::kPostLoadGame:
 		case SKSE::MessagingInterface::kNewGame:
+			// An INI edited while the game ran is read again here, so the edit counts from this load on.
+			{
+				const int motionBefore = settings::MotionValue();
+				if (settings::ReloadIfChanged())
+				{
+					settings::ApplyLogLevel();
+					motion::OnSettingsReloaded(motionBefore);
+				}
+			}
 			// The hook answers from the start, so there is nothing to put back; this only has the game take the speed once more.
 			logger::info("game {}: movement speed {}%", a_msg->type == SKSE::MessagingInterface::kNewGame ? "started" : "loaded", settings::SelectedPercent());
 			motion::ApplyOnLoad();
