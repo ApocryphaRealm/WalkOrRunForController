@@ -124,13 +124,14 @@ namespace speed
 		ApplyCurrent();
 	}
 
-	void ApplyCurrent()
+	bool ApplyCurrent()
 	{
 		const int percent = CurrentPercent();
-		if (g_appliedPercent.exchange(percent) == percent) { return; }
+		if (g_appliedPercent.exchange(percent) == percent) { return false; }
 		g_scale = static_cast<float>(percent) / 100.0f;
 		logger::debug("speed: {}% in force", percent);
 		Refresh();
+		return true;
 	}
 
 	Stats GetStats()

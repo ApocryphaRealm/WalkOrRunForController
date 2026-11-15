@@ -11,6 +11,7 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 ## 1.2.2 - 2026-11-09 - untested
 
 ### Fixed
+- An INI edit of a speed made while the game is running now changes the speed in game at the next load, not only the value the mod reports: the reload read the new percent but the speed in force stayed the old one (seen in testing: the INI said 120%, the player still moved at 150%). The load now takes the reloaded percent before the game is asked for the speed once.
 - Walk, run after sprint on horseback: letting go of Sprint after a gallop now keeps the horse running until it stops, then it walks again (a Nexus report). Since 1.2.1 the stop was read from the player's own movement state, which stays still while the horse carries him, so the run ended at once. On a horse the stop is now read from the horse's movement state; the horse is looked up at the Sprint release, and the log names it at the run start and says when the horse stopped. On foot nothing changes.
 - An INI edit made while the game is running now counts from the next save loaded or new game started: the INI is read again at each load when its file changed since the mod last read or wrote it, and the log says so. Before, the INI was read only at startup, and the next change in the menu wrote the old values back over the edit (a Nexus report).
 

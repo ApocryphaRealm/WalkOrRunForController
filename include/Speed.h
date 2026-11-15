@@ -7,7 +7,7 @@ namespace speed
 {
 	void Install();                  // at kDataLoaded, when the player object exists
 	void SetPercent(int a_percent);  // any thread: the selected Default Motion's value. Clamps, applies at once, saves the INI. Nothing when unchanged.
-	void ApplyCurrent();             // takes the value for what the player is doing now; has the game take it only when it changed
+	bool ApplyCurrent();             // takes the value for what the player is doing now; has the game take it only when it changed (true then)
 	void Refresh();                  // has the game take the speed again, on its own thread
 
 	struct Stats

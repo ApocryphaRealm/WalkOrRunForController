@@ -40,10 +40,11 @@ namespace
 					motion::OnSettingsReloaded(motionBefore);
 				}
 			}
-			// The hook answers from the start, so there is nothing to put back; this only has the game take the speed once more.
+			// The hook answers from the start, so there is nothing to put back; ApplyCurrent takes the percent read now (a
+			// reloaded INI changes it) and has the game take the speed once; when the percent is unchanged, Refresh does that.
 			logger::info("game {}: movement speed {}%", a_msg->type == SKSE::MessagingInterface::kNewGame ? "started" : "loaded", settings::SelectedPercent());
 			motion::ApplyOnLoad();
-			speed::Refresh();
+			if (!speed::ApplyCurrent()) { speed::Refresh(); }
 			break;
 		default:
 			break;
