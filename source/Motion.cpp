@@ -28,6 +28,7 @@
 // RUN AFTER SPRINT (a Nexus request, 2026-11-06: "when you stop Sprinting, you Run until you stop, then you default to Walk again").
 // Default Motion's third choice. On Walk, letting go of Sprint leaves the is-running answer at yes while the move stick or keys still
 // push; the first ask that finds no move input ends it, and the walk answer comes back. The run speed's value stays in force meanwhile.
+// On horseback the stop is read from the horse's own movement bits (the rider's stay clear while the horse moves him).
 //
 // WALK SHEATHED, RUN DRAWN (a Nexus request, 2026-11-07: "walk when sheathed and run when unsheathed/drawn weapon"). Default Motion's
 // fourth choice. Each ask reads the player's weapon state (ActorState weaponState at or past Drawn: a weapon, a spell or fists): drawn
@@ -61,6 +62,11 @@ namespace motion
 		std::atomic<std::int64_t> g_sprintSeen{ 0 };
 		std::atomic<std::uint64_t> g_sprintEvents{ 0 };
 		std::atomic<bool> g_carryRun{ false };  // on Walk with run after sprint: a sprint ended and the player has not stopped yet
+		// On horseback (a Nexus report on 1.2.1, 2026-11-14): the horse carries the movement, so the run after a gallop reads the
+		// horse's ActorState bits, not the rider's. Looked up in the Sprint handler (main thread, where calling the game is fine),
+		// read as a plain pointer inside the speed computation. g_carryMountRef keeps the horse alive while it is held there.
+		RE::NiPointer<RE::Actor> g_carryMountRef;           // touched in the Sprint handler only
+		std::atomic<RE::Actor*> g_carryMount{ nullptr };
 		constexpr std::int64_t kSprintForgetMs = 300;  // a held button repeats every frame; one that stopped (a menu took the release) is let go
 
 		std::int64_t NowMs()
@@ -73,12 +79,31 @@ namespace motion
 			if (auto* player = RE::PlayerCharacter::GetSingleton()) { player->GetPlayerRuntimeData().playerFlags.isSprinting = a_on; }
 		}
 
+		// At a Sprint release: the horse the player is riding, or none. Calls the game, so only from the Sprint handler.
+		void NoteMount()
+		{
+			RE::NiPointer<RE::Actor> mount;
+			auto* player = RE::PlayerCharacter::GetSingleton();
+			if (player && player->IsOnMount() && !player->GetMount(mount)) { mount.reset(); }
+			if (mount.get() != g_carryMount.load(std::memory_order_relaxed))
+			{
+				logger::debug("motion: riding {}", mount ? fmt::format("the horse {:08X}", mount->GetFormID()) : std::string("nothing"));
+			}
+			g_carryMount.store(mount.get(), std::memory_order_relaxed);
+			g_carryMountRef = std::move(mount);
+		}
+
 		void SetSprintHeld(bool a_held)
 		{
 			if (g_sprintHeld.exchange(a_held) == a_held) { return; }
 			if (!a_held) { SetSprintFlag(false); }
 			const bool carry = !a_held && settings::RunAfterSprint();
-			if (g_carryRun.exchange(carry) != carry && carry) { logger::info("motion: Sprint let go; running until the player stops"); }
+			if (g_carryRun.exchange(carry) != carry && carry)
+			{
+				auto* mount = g_carryMount.load(std::memory_order_relaxed);
+				if (mount) { logger::info("motion: Sprint let go on horseback; running until the horse {:08X} stops", mount->GetFormID()); }
+				else { logger::info("motion: Sprint let go; running until the player stops"); }
+			}
 			logger::debug("motion: Sprint {} on Walk", a_held ? "held" : "let go");
 			speed::ApplyCurrent();
 		}
@@ -91,6 +116,7 @@ namespace motion
 				if (!a_event || !settings::WalkFamily()) { return; }
 				g_sprintEvents.fetch_add(1, std::memory_order_relaxed);
 				const bool down = a_event->Value() != 0.0f;
+				if (!down) { NoteMount(); }
 				if (down)
 				{
 					g_sprintSeen.store(NowMs(), std::memory_order_relaxed);
@@ -118,10 +144,9 @@ namespace motion
 
 		// The player is actually moving: the game's own per-frame direction bits on the player's ActorState (all clear when
 		// he stands). A plain field read - no game function is called from inside the game's speed computation.
-		bool PlayerMoving()
+		bool ActorMoving(RE::Actor* a_actor)
 		{
-			auto* player = RE::PlayerCharacter::GetSingleton();
-			auto* state = player ? player->AsActorState() : nullptr;
+			auto* state = a_actor ? a_actor->AsActorState() : nullptr;
 			if (!state) { return true; }  // nothing to read: leave the decision to the input
 			const auto& s1 = state->actorState1;
 			return s1.movingBack || s1.movingForward || s1.movingRight || s1.movingLeft;
@@ -142,7 +167,17 @@ namespace motion
 				const auto& move = a_controls->data.moveInputVec;
 				input = move.x * move.x + move.y * move.y > 0.01f;
 			}
-			const bool moving = input && PlayerMoving();
+			// On horseback the rider's own bits stay clear (1.2.1 ended every run after a gallop at once), so the horse's are read,
+			// and they decide alone: the horse is this frame's mover, whatever the last input batch left in moveInputVec.
+			if (auto* mount = g_carryMount.load(std::memory_order_relaxed))
+			{
+				if (ActorMoving(mount)) { return true; }
+				g_carryRun.store(false, std::memory_order_relaxed);
+				logger::info("motion: the horse stopped (ActorState not moving, move input {}); walking again", input ? "left over" : "none");
+				speed::ApplyCurrent();
+				return false;
+			}
+			const bool moving = input && ActorMoving(RE::PlayerCharacter::GetSingleton());
 			if (moving) { return true; }
 			g_carryRun.store(false, std::memory_order_relaxed);
 			logger::info("motion: the player stopped ({}); walking again", input ? "move input left over, ActorState not moving" : "no move input");
