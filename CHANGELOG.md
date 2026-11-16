@@ -8,7 +8,7 @@ Written as changes happen, not reconstructed afterwards (rule 61). Each version 
 * **failed** - built but crashed or malfunctioned; the number was reclaimed
 * **scratch** - a hypothesis-test build that never held a real number
 
-## 1.2.2 - 2026-11-09 - untested
+## 1.2.2 - 2026-11-09 - working
 
 ### Fixed
 - An INI edit of a speed made while the game is running now changes the speed in game at the next load, not only the value the mod reports: the reload read the new percent but the speed in force stayed the old one (seen in testing: the INI said 120%, the player still moved at 150%). The load now takes the reloaded percent before the game is asked for the speed once.
